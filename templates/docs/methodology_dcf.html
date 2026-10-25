@@ -1,0 +1,145 @@
+{% extends "docs/base.html" %}
+{% set brand_page = 'method' %}
+{% block title %}DCF methodology{% endblock %}
+{% block body %}
+<p><a href="/methodology">&larr; Methodology</a></p>
+<h1>DCF methodology</h1>
+<p class="lede">A discounted cash flow (DCF) values a business as the present value of the free cash flow it can pay out to all of its capital providers. Stock Elf uses the textbook free-cash-flow-to-firm (FCFF) form, with ten explicit forecast years and a terminal value.</p>
+
+<div class="toc"><b>On this page</b><ol>
+  <li><a href="#idea">The idea</a></li>
+  <li><a href="#fcff">Free cash flow to the firm</a></li>
+  <li><a href="#drivers">The six drivers and their defaults</a></li>
+  <li><a href="#wacc">Discount rate (WACC)</a></li>
+  <li><a href="#tv">Terminal value</a></li>
+  <li><a href="#bridge">From enterprise value to value per share</a></li>
+  <li><a href="#example">Worked example</a></li>
+  <li><a href="#scen">Scenarios and sensitivity</a></li>
+  <li><a href="#reverse">Reverse DCF</a></li>
+  <li><a href="#stage">Life-cycle presets</a></li>
+  <li><a href="#limits">Limitations</a></li>
+</ol></div>
+
+<h2 id="idea">1. The idea</h2>
+<p>A dollar received in the future is worth less than a dollar today, so each forecast cash flow is divided by (1 + r) raised to the number of years. Add up the discounted cash flows for the forecast years and for all the years after (the terminal value), and you have the value of the operating business. Adjust for cash and debt to get the value belonging to shareholders.</p>
+<div class="formula">Enterprise value = &Sigma; FCFF<sub>t</sub> / (1 + WACC)<sup>t</sup>  (t = 1..10)  +  TV / (1 + WACC)<sup>10</sup></div>
+
+<h2 id="fcff">2. Free cash flow to the firm</h2>
+<p>FCFF is the cash left from operations after taxes and after the investment needed to sustain growth, before paying any lenders or shareholders.</p>
+<div class="formula"><b>FCFF</b> = EBIT &times; (1 &minus; tax rate) + D&amp;A &minus; CapEx &minus; &Delta;NWC
+
+EBIT   = revenue &times; operating margin
+D&amp;A    = revenue &times; D&amp;A %
+CapEx  = revenue &times; CapEx %
+&Delta;NWC  = NWC % &times; (revenue<sub>t</sub> &minus; revenue<sub>t-1</sub>)</div>
+<p>The first term, EBIT &times; (1 &minus; tax), is after-tax operating profit (NOPAT). D&amp;A is added back because it is a non-cash charge. CapEx and the change in net working capital (NWC) are the cash the business must reinvest.</p>
+
+<h2 id="drivers">3. The six drivers and their defaults</h2>
+<p>Each driver is a list of ten yearly values, so you can shape every year. Defaults come from the company's SEC filings (trailing twelve months, TTM) and are deliberately simple.</p>
+<table class="t">
+  <tr><th>Driver</th><th>Default curve</th></tr>
+  <tr><td>Revenue growth</td><td>Year-1 growth <code>g1</code> held for years 1&ndash;5 (last reported annual growth, limited to 2%&ndash;20%), then a straight line down to terminal growth in year 10.</td></tr>
+  <tr><td>Operating margin</td><td>TTM operating margin, ramping toward a target margin over <code>margin_years</code> (default: target equals today, so flat).</td></tr>
+  <tr><td>Tax rate on EBIT</td><td>TTM effective tax rate (limited to 10%&ndash;28%), moving in a straight line to 25% by year 10.</td></tr>
+  <tr><td>D&amp;A % of revenue</td><td>TTM level, held flat.</td></tr>
+  <tr><td>CapEx % of revenue</td><td>D&amp;A % plus TTM net CapEx (CapEx &minus; D&amp;A) scaled by growth &divide; g1, so net investment shrinks as growth fades and the terminal year stays consistent.</td></tr>
+  <tr><td>&Delta;NWC % of revenue change</td><td>Historical average, limited to &plusmn;30%, held flat.</td></tr>
+</table>
+<p>Other defaults: terminal growth 2.5%; equity risk premium 4.23% (Damodaran's published figure; edit it); risk-free rate from the 10-year Treasury yield; beta from Yahoo Finance; cost of debt = risk-free rate + 1%.</p>
+
+<h2 id="wacc">4. Discount rate (WACC)</h2>
+<p>The weighted average cost of capital blends what equity holders and lenders each require, using market-value weights.</p>
+<div class="formula">Cost of equity (CAPM):  k<sub>e</sub> = r<sub>f</sub> + &beta; &times; ERP
+After-tax cost of debt: k<sub>d</sub> &times; (1 &minus; tax)
+Weights:                E = price &times; shares,   D = debt,   w<sub>d</sub> = D / (D + E)
+
+<b>WACC</b> = (1 &minus; w<sub>d</sub>) &times; k<sub>e</sub> + w<sub>d</sub> &times; k<sub>d</sub> &times; (1 &minus; tax)</div>
+<p>One constant WACC discounts all ten years and the terminal value. You can override it on the page. WACC must exceed terminal growth, otherwise the terminal value is undefined and the page shows an error.</p>
+
+<h2 id="tv">5. Terminal value</h2>
+<p>After year 10 the model assumes the company grows forever at a stable rate g (default 2.5%, below the economy's long-run growth). The year-11 cash flow is built from the same drivers as year 10, with revenue growing at g, and capitalised with the Gordon growth formula.</p>
+<div class="formula"><b>TV</b> = FCFF<sub>11</sub> / (WACC &minus; g)
+PV of TV = TV / (1 + WACC)<sup>10</sup></div>
+<p>The page reports the terminal value's share of enterprise value and the implied terminal reinvestment rate and return on invested capital, as consistency checks. Stable growth needs reinvestment: a firm cannot grow at g while reinvesting nothing, because g = reinvestment rate &times; return on capital.</p>
+
+<h2 id="bridge">6. From enterprise value to value per share</h2>
+<div class="formula">Equity value = Enterprise value + cash &minus; debt
+Value per share = Equity value / diluted shares
+
+If you set a probability of failure p and a liquidation value L per share:
+Value per share = DCF value &times; (1 &minus; p) + L &times; p</div>
+<p>The gap shown on the page compares this value with the market price.</p>
+
+<h2 id="example">7. Worked example</h2>
+<p>A made-up company, so the arithmetic is easy to follow. It has revenue of $1,000M, a 20% operating margin, 21% tax, D&amp;A of 4% and CapEx of 5% of revenue, and working capital of 10% of any revenue increase. It has no debt, $100M of cash and 100M shares. Growth is 10% for years 1&ndash;5, fading to 2.5% by year 10.</p>
+<div class="example">
+  <h4>Step 1: WACC</h4>
+  <p>r<sub>f</sub> = 4%, &beta; = 1.0, ERP = 5%. So k<sub>e</sub> = 4% + 1.0 &times; 5% = 9%. With no debt, <b>WACC = 9%</b>.</p>
+  <h4>Step 2: Year 1 cash flow</h4>
+  <p>Revenue = 1,000 &times; 1.10 = 1,100. EBIT = 1,100 &times; 20% = 220. Tax = 220 &times; 21% = 46.2, so NOPAT = 173.8.<br>
+  D&amp;A = 44.0, CapEx = 55.0, &Delta;NWC = 10% &times; (1,100 &minus; 1,000) = 10.0.<br>
+  FCFF = 173.8 + 44.0 &minus; 55.0 &minus; 10.0 = <b>152.8</b>. Discounted one year: 152.8 / 1.09 = 140.2.</p>
+  <h4>Step 3: The ten-year table ($M)</h4>
+  <table class="t">
+    <tr><th>Year</th><th class="n">Growth</th><th class="n">Revenue</th><th class="n">NOPAT</th><th class="n">D&amp;A</th><th class="n">CapEx</th><th class="n">&Delta;NWC</th><th class="n">FCFF</th><th class="n">PV</th></tr>
+    <tr><td>1</td><td class="n">10.0%</td><td class="n">1,100.0</td><td class="n">173.8</td><td class="n">44.0</td><td class="n">55.0</td><td class="n">10.0</td><td class="n">152.8</td><td class="n">140.2</td></tr>
+    <tr><td>2</td><td class="n">10.0%</td><td class="n">1,210.0</td><td class="n">191.2</td><td class="n">48.4</td><td class="n">60.5</td><td class="n">11.0</td><td class="n">168.1</td><td class="n">141.5</td></tr>
+    <tr><td>3</td><td class="n">10.0%</td><td class="n">1,331.0</td><td class="n">210.3</td><td class="n">53.2</td><td class="n">66.6</td><td class="n">12.1</td><td class="n">184.9</td><td class="n">142.8</td></tr>
+    <tr><td>&hellip;</td><td colspan="8">years 4&ndash;9 follow the same pattern as growth fades</td></tr>
+    <tr><td>10</td><td class="n">2.5%</td><td class="n">2,102.7</td><td class="n">332.2</td><td class="n">84.1</td><td class="n">89.4</td><td class="n">5.1</td><td class="n">321.8</td><td class="n">136.0</td></tr>
+  </table>
+  <p>The sum of all ten present values is <b>1,432.8</b>.</p>
+  <h4>Step 4: Terminal value</h4>
+  <p>FCFF<sub>11</sub> = 329.9 (year-10 drivers, revenue growing 2.5%). TV = 329.9 / (9% &minus; 2.5%) = <b>5,075.3</b>. Discounted ten years: 5,075.3 / 1.09<sup>10</sup> = <b>2,143.9</b>.</p>
+  <h4>Step 5: Value</h4>
+  <p>Enterprise value = 1,432.8 + 2,143.9 = <b>3,576.7</b>. Add cash of 100, subtract debt of 0: equity value = 3,676.7. Divide by 100M shares: <b>$36.77 per share</b>.</p>
+  <p>The terminal value is 60% of the total, which is typical. If the stock traded at $20, the model would say it is priced well below this set of assumptions; the next sections explain how to test whether the assumptions deserve that confidence.</p>
+</div>
+<p>You can reproduce this example in code: it is the output of <code>valuation.fcff.run</code> with the inputs above.</p>
+
+<h2 id="scen">8. Scenarios and sensitivity</h2>
+<p><b>Scenarios.</b> Bear, Base and Bull re-run the model with shifted assumptions.</p>
+<table class="t">
+  <tr><th></th><th>Growth (years 1&ndash;5, tapering to year 10)</th><th>Operating margin (every year)</th><th>WACC</th></tr>
+  <tr><td>Bear</td><td>&minus;3 pts</td><td>&minus;2 pts</td><td>+1 pt</td></tr>
+  <tr><td>Base</td><td>as set</td><td>as set</td><td>as set</td></tr>
+  <tr><td>Bull</td><td>+3 pts</td><td>+3 pts</td><td>&minus;1 pt</td></tr>
+</table>
+<p><b>Sensitivity grid.</b> Value per share across WACC (&plusmn;2 pts in 1-pt steps) and terminal growth (&plusmn;1 pt in 0.5-pt steps). Cells where WACC does not exceed terminal growth are left blank. The spread of the grid is a quick measure of how fragile the valuation is.</p>
+
+<h2 id="reverse">9. Reverse DCF</h2>
+<p>Instead of asking "what is it worth?", ask "what does the price assume?". The reverse DCF takes the market price as fixed and solves, one lever at a time with everything else unchanged, for the value that makes the model equal to the price:</p>
+<ul>
+  <li><b>Revenue growth:</b> the year 1&ndash;5 growth rate (the path shifts, tapering to terminal growth).</li>
+  <li><b>Operating margin:</b> the margin level, applied to every year.</li>
+  <li><b>Terminal growth:</b> the perpetual growth rate.</li>
+  <li><b>Discount rate:</b> the return an investor earns by buying at today's price if the cash flows come true.</li>
+</ul>
+<p>It also shows a growth-versus-margin trade-off table and compares the market's enterprise value (market cap + debt &minus; cash) with the model's. If the price implies growth far above anything in the company's history, the market is optimistic; if it implies a margin below current levels, the market is pessimistic.</p>
+<div class="example">
+  <h4>Example</h4>
+  <p>The made-up company above is worth $36.77 per share in the model. Suppose it trades at $60. Solving one lever at a time, the price implies: year 1&ndash;5 growth of <b>19.3%</b> instead of 10%; or an operating margin of <b>32.2%</b> instead of 20%; or terminal growth of <b>5.8%</b> instead of 2.5%; or a discount rate of <b>6.6%</b> instead of 9%. Each is a way of asking the same question: is that believable for this business?</p>
+</div>
+
+<h2 id="stage">10. Life-cycle presets</h2>
+<p>Following Damodaran's life-cycle framework, a company's stage changes how its cash flows should look. The page suggests a stage from simple rules on the SEC history (margin sign and trend, 3-year revenue growth, years of history, interest cover) and offers a preset for each.</p>
+<table class="t">
+  <tr><th>Preset</th><th>Shape of the curves</th></tr>
+  <tr><td>Flat</td><td>Everything held at TTM values; growth uses the default fade. A baseline.</td></tr>
+  <tr><td>Young growth</td><td>High growth that fades; margin climbs to a mature level; no tax for 4 years, then up; heavy CapEx tapering. Pair with a probability of failure.</td></tr>
+  <tr><td>Growth</td><td>Growth held for 3 years, margin widens, tax normalises, CapEx tapers so year-10 reinvestment matches g &divide; return on capital.</td></tr>
+  <tr><td>Mature</td><td>Growth capped near the economy's, margins flat, reinvestment consistent with stable growth.</td></tr>
+  <tr><td>Declining</td><td>Shrinking revenue, margin erosion, cash released from working capital. Use a distress probability and liquidation value.</td></tr>
+</table>
+<p>The stage detector is a hint, not a verdict. Override it when you know the business better.</p>
+
+<h2 id="limits">11. Limitations</h2>
+<ul>
+  <li><b>Garbage in, garbage out.</b> The defaults extrapolate the recent past. A DCF is a way to organise a view of the business, not a source of one.</li>
+  <li><b>Terminal value dominates.</b> Typically 50&ndash;75% of the value comes from after year 10. Small changes in WACC or terminal growth move the result a lot (see the sensitivity grid).</li>
+  <li><b>Unusual companies.</b> Banks, insurers and REITs need different models. Companies with negative cash flows need explicit judgement on when and how profits arrive.</li>
+  <li><b>Stock-based compensation.</b> It is a real cost to shareholders. Check how it affects margin and share count before trusting an estimate.</li>
+  <li><b>Data.</b> SEC tags differ between companies, so some fields use fallbacks. The page lists any fallback it used.</li>
+</ul>
+<p>Reference: Aswath Damodaran, <i>The Little Book of Valuation</i> (Wiley), and <i>Investment Valuation</i>.</p>
+{% endblock %}

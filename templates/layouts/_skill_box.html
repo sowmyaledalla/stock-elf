@@ -1,0 +1,48 @@
+{# InvestSkill prompt box. Optional: {% set sk_ticker = 'HD' %} before include prefills the (editable) ticker field. #}
+<style>
+  .sk-box { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:1.1rem 1.25rem; margin:1.5rem 0; box-shadow:0 1px 3px rgba(0,0,0,.06); font-family:'Inter',sans-serif; }
+  .sk-top { display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; margin-bottom:.9rem; }
+  .sk-top h3 { font-size:.95rem; font-weight:700; margin:0; color:#1e293b; }
+  .sk-group { margin-bottom:.6rem; }
+  .sk-group .gl { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#64748b; margin-bottom:.3rem; }
+  .sk-chip { display:inline-block; border:1px solid #e2e8f0; background:#f8fafc; border-radius:8px; padding:.32rem .7rem; margin:0 .35rem .35rem 0;
+             font-size:.8rem; font-weight:600; cursor:pointer; color:#1e293b; transition:background .12s,border-color .12s; user-select:none; }
+  .sk-chip:hover { background:#eff6ff; border-color:#3b82f6; }
+  .sk-chip.done { background:#d1fae5; border-color:#10b981; }
+  .sk-input { border:1px solid #e2e8f0; border-radius:7px; padding:.4rem .85rem; font-size:.9rem; width:160px; outline:none; }
+  #sk-msg { font-size:.8rem; color:#64748b; }
+</style>
+<div class="sk-box">
+  <div class="sk-top">
+    <h3><i class="bi bi-clipboard2-check"></i> &nbsp;InvestSkill prompts — click to copy, paste into any LLM</h3>
+    <input type="text" class="sk-input" id="sk-ticker" placeholder="Ticker, e.g. HD" value="{{ sk_ticker or '' }}" autocapitalize="characters" autocomplete="off">
+    <span id="sk-msg">Enter a ticker (prefilled on ticker pages), then click a skill. The ticker is filled into the prompt.</span>
+  </div>
+  <div id="sk-groups"></div>
+</div>
+<script>
+(async function(){
+  const cat = await (await fetch('/skills/catalog')).json();
+  const groups = document.getElementById('sk-groups'), msg = document.getElementById('sk-msg');
+  groups.innerHTML = Object.entries(cat).map(([g,items]) =>
+    `<div class="sk-group"><div class="gl">${g}</div>` +
+    items.map(s => `<span class="sk-chip" title="${s.hint}" data-skill="${s.skill}">${s.label}</span>`).join('') + '</div>').join('');
+  async function copyText(p){  // ClipboardItem keeps the user gesture alive across the fetch
+    try { await navigator.clipboard.write([new ClipboardItem({'text/plain': p.then(t => new Blob([t], {type:'text/plain'}))})]); }
+    catch (e) { const t = await p, ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  }
+  groups.addEventListener('click', async ev => {
+    const chip = ev.target.closest('.sk-chip'); if (!chip) return;
+    const qs = document.getElementById('qs-ticker'), inp = document.getElementById('sk-ticker');
+    const tk = ((inp && inp.value) || (qs && qs.value) || '').trim().toUpperCase();
+    if (!tk) { msg.textContent = 'Enter a ticker first.'; if (inp) inp.focus(); return; }
+    const p = fetch('/skills/prompt?skill=' + chip.dataset.skill + '&ticker=' + encodeURIComponent(tk))
+      .then(r => r.text().then(t => { if (!r.ok) throw new Error(t); return t; }));
+    try {
+      await copyText(p); const t = await p;
+      chip.classList.add('done'); setTimeout(() => chip.classList.remove('done'), 2500);
+      msg.textContent = `Copied "${chip.textContent}" for ${tk} (${t.length.toLocaleString()} chars) — paste into your LLM.`;
+    } catch (e) { msg.textContent = 'Copy failed: ' + e.message; }
+  });
+})();
+</script>

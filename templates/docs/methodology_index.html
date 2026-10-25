@@ -1,0 +1,29 @@
+{% extends "docs/base.html" %}
+{% set brand_page = 'method' %}
+{% block title %}Methodology{% endblock %}
+{% block body %}
+<h1>Methodology</h1>
+<p class="lede">What each page calculates, the formulas behind it, and where its data comes from.</p>
+<div class="cards">
+  <a href="/methodology/dcf"><b>DCF valuation</b><span>FCFF model, WACC, terminal value, scenarios, sensitivity and the reverse DCF, with a worked example.</span></a>
+  <a href="/methodology/technicals"><b>Technical analysis</b><span>Every indicator, its parameters, the signal rule and how the overall rating is scored, with worked examples.</span></a>
+</div>
+
+<h2>Data sources</h2>
+<table class="t">
+  <tr><th>Source</th><th>Used for</th><th>Notes</th></tr>
+  <tr><td>SEC EDGAR (XBRL company facts)</td><td>Annual and quarterly revenue, operating income, tax, D&amp;A, CapEx, working capital, debt, cash, share count</td><td>Primary source for the DCF history. Free; requires a contact in the request header.</td></tr>
+  <tr><td>yfinance (Yahoo Finance)</td><td>Prices and price history, beta, 10-year Treasury yield, split history</td><td>Unofficial; can be delayed or occasionally unavailable.</td></tr>
+  <tr><td>Finviz</td><td>Evaluate page metrics, company description, fallback fundamentals</td><td>Scraped from the public quote page.</td></tr>
+  <tr><td>TradingView widget</td><td>Interactive chart on the Evaluate page</td><td>Embedded from TradingView's servers in your browser.</td></tr>
+</table>
+
+<h2>Limits that apply everywhere</h2>
+<ul>
+  <li>Models are only as good as their inputs. Defaults are mechanical extrapolations of the past, not forecasts.</li>
+  <li>Financial companies (banks, insurers) and companies with no meaningful operating history do not fit the cash-flow model well.</li>
+  <li>Technical signals describe past price behavior; they carry no guarantee about the future.</li>
+  <li>Data providers restate and revise. Verify anything important against the original filing.</li>
+</ul>
+<p>Further reading: Aswath Damodaran, <i>The Little Book of Valuation</i>, and his free course materials at <a href="https://pages.stern.nyu.edu/~adamodar/">pages.stern.nyu.edu/~adamodar</a>.</p>
+{% endblock %}

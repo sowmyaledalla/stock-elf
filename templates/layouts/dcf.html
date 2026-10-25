@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stock Elf - DCF</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/static/css/fcff_ui.css?v=1" rel="stylesheet">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <style>
+    body { background:#f0f4f8; color:#1e293b; font-family:-apple-system,'Inter',sans-serif; }
+    .hdr { background:#1e293b; color:#f8fafc; padding:.75rem 2rem; display:flex; gap:1rem; align-items:center; flex-wrap:wrap; }
+    .hdr h1 { font-size:1.1rem; margin:0; font-weight:600; }
+    .hdr input { width:130px; text-transform:uppercase; }
+    .card-x { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:1rem 1.2rem; margin-bottom:1rem; }
+    .card-x h6 { font-size:.75rem; letter-spacing:.06em; text-transform:uppercase; color:#64748b; margin-bottom:.7rem; }
+    .fv { font-size:2.4rem; font-weight:700; line-height:1; }
+    .over { color:#ef4444 } .under { color:#10b981 }
+    table.t { width:100%; font-size:.85rem; } table.t td, table.t th { padding:3px 8px; text-align:right; border-bottom:1px solid #f1f5f9; }
+    table.t td:first-child, table.t th:first-child { text-align:left; }
+    .grid-in { display:grid; grid-template-columns:repeat(2,1fr); gap:.5rem .8rem; }
+    .grid-in label { font-size:.72rem; color:#64748b; margin:0; display:block; }
+    .grid-in input, .grid-in select { width:100%; font-size:.85rem; padding:.25rem .5rem; border:1px solid #cbd5e1; border-radius:6px; }
+    .grid-in input.set { border-color:#3b82f6; background:#eff6ff; }
+    .flag { font-size:.82rem; color:#92400e; background:#fffbeb; border-left:3px solid #f59e0b; padding:.3rem .6rem; margin-bottom:.3rem; }
+    table.snap { white-space:nowrap; } table.snap tr.sec td { background:#f1f5f9; font-weight:600; text-align:left; font-size:.75rem; letter-spacing:.05em; text-transform:uppercase; color:#475569; }
+    table.snap td.neg { color:#ef4444; } table.snap th:last-child, table.snap td:last-child { background:#eff6ff; font-weight:600; }
+    .cell-hi { background:#dbeafe } .cell-lo { background:#fee2e2 } .cell-base { outline:2px solid #1e293b; }
+  </style>
+<link rel="icon" type="image/svg+xml" href="/static/img/logo.svg">
+</head>
+<body>
+{% set brand_page = 'dcf' %}{% set brand_ticker = ticker %}
+{% include "layouts/_brand.html" %}
+
+<div class="hdr">
+  <h1>DCF Calculator (FCFF)</h1>
+  <input id="tk" class="form-control form-control-sm" placeholder="Ticker" value="{{ ticker }}">
+  <button class="btn btn-primary btn-sm" onclick="load()">Load</button>
+  <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#imp">Paste inputs…</button>
+  <button class="btn btn-outline-info btn-sm" id="rnBtn" style="display:none" onclick="openResearch()" title="The notes that came with the pasted JSON">Research notes</button>
+  <span id="status" class="small text-secondary"></span>
+  <span class="ms-auto small"><a class="text-info" href="/">Home</a></span>
+</div>
+<div class="container-fluid p-3">
+  <div class="row">
+    <div class="col-lg-4">
+      <div class="card-x">
+        <h6>Assumptions <span class="text-secondary" style="text-transform:none">(blank = model default; blue = overridden)</span></h6>
+        <div class="small mb-2" id="engines">Valuation engine:
+          <label class="me-2"><input type="radio" name="eng" value="fcff" checked onchange="setEngine(this.value)"> Textbook FCFF <span class="text-secondary">(EBIT, tax, D&amp;A, CapEx, ΔNWC; editable curves)</span></label><br>
+          <label><input type="radio" name="eng" value="current" onchange="setEngine(this.value)"> Damodaran FCFF (original model)</label></div>
+        <div class="grid-in" id="fields"></div>
+        <div class="mt-3 d-flex gap-2 flex-wrap">
+          <button class="btn btn-primary btn-sm" onclick="calc()">Recalculate</button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="resetAll()">Reset</button>
+          <button class="btn btn-outline-success btn-sm" onclick="save()">Save to inputs/&lt;T&gt;.json</button>
+        </div>
+        <div class="small text-secondary mt-2" id="saved"></div>
+      </div>
+      <div class="card-x"><h6>Things to check</h6><div id="flags"></div></div>
+    </div>
+    <div class="col-lg-8">
+      <div class="card-x" id="hero" style="display:none">
+        <div class="d-flex gap-4 align-items-end flex-wrap">
+          <div><div class="small text-secondary" id="nm"></div><div class="fv" id="fv"></div></div>
+          <div><div class="small text-secondary">Price</div><div class="fs-4" id="px"></div></div>
+          <div><div id="verdict" class="fs-5 fw-semibold"></div><div class="small text-secondary" id="implied"></div></div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6"><div class="card-x" style="overflow-x:auto"><h6>Scenarios</h6><table class="t" id="sc"></table></div></div>
+        <div class="col-md-6"><div class="card-x"><h6 id="mtTitle">Stages and terminal value</h6><table class="t" id="mt"></table></div></div>
+      </div>
+      <div class="card-x"><h6>Sensitivity: WACC (rows) × terminal growth (columns)</h6><table class="t" id="sens"></table></div>
+      <div class="row">
+        <div class="col-md-6"><div class="card-x"><div id="ch1"></div></div></div>
+        <div class="col-md-6"><div class="card-x"><div id="ch2"></div></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="card-x" id="histCard" style="display:none">
+    <h6>Historical FCFF build <span class="text-secondary" style="text-transform:none">· last 10 fiscal years + TTM · SEC EDGAR · $ millions · the same steps the forecast below uses</span></h6>
+    <div style="overflow-x:auto"><table class="t ft" id="hb"></table></div>
+    <div class="small text-secondary mt-2">ΔNWC = change in (current assets − cash − ST investments) − (current liabilities − ST debt); a positive number is cash tied up. The TTM column compares the latest quarter with the last fiscal year-end, so it is noisy.
+      <a href="#" onclick="toggleEdgar();return false">Show every EDGAR line with its XBRL tag</a></div>
+    <div id="edgBox" style="display:none;overflow-x:auto" class="mt-2"><table class="t snap" id="edg"></table><div class="small text-secondary mt-1" id="edgFilings"></div></div>
+  </div>
+  <div class="card-x" id="drvCard" style="display:none">
+    <div class="d-flex align-items-center gap-3 flex-wrap mb-1">
+      <h6 class="mb-0">Projection drivers <span class="text-secondary" style="text-transform:none">· drag a blue point, type in a box, shift or ramp the whole curve · grey dashed = model default · grey line = history</span></h6>
+      <span class="small">Company type <select id="preset" class="form-select form-select-sm d-inline-block" style="width:auto" onchange="applyPreset(this.value)"></select></span>
+      <button class="btn btn-outline-secondary btn-sm ms-auto" onclick="resetDrivers()">Reset all curves</button>
+    </div>
+    <div id="stageBox" class="small mb-1"></div>
+    <div class="small text-secondary mb-2" id="presetNote">
+    </div>
+    <div class="drv-grid" id="drvGrid"></div>
+  </div>
+  <div class="card-x" id="fcCard" style="display:none">
+    <h6>Forecast build <span class="text-secondary" style="text-transform:none">· FCFF = EBIT × (1 − T) + D&amp;A − CapEx − ΔNWC · $ millions</span></h6>
+    <div style="overflow-x:auto"><table class="t ft" id="ft"></table></div>
+  </div>
+  <div class="card-x" id="snapCard" style="display:none">
+    <h6>Financial snapshot <span class="text-secondary" style="text-transform:none" id="snapSub"></span></h6>
+    <div style="overflow-x:auto"><table class="t snap" id="snap"></table></div>
+    <div class="small text-secondary mt-2" id="snapNotes"></div>
+  </div>
+</div>
+<div class="container-fluid px-3 pb-3"><div class="card-x" id="revCard" style="display:none">
+  <h6>Reverse DCF <span class="text-secondary" style="text-transform:none">· what is today's price already assuming?</span></h6>
+  <div id="revBox"></div>
+</div></div>
+<div class="container-fluid px-3 pb-3"><div class="card-x" id="effCard" style="display:none">
+  <div class="d-flex align-items-center gap-3 flex-wrap mb-1">
+    <h6 class="mb-0">Effective margins from SEC history <span class="text-secondary" style="text-transform:none">· one steady value per driver, averaged over the window you pick</span></h6>
+    <span class="small ms-auto">Window <select id="effWin" class="form-select form-select-sm d-inline-block" style="width:auto" onchange="drawEffective()"><option value="3">last 3 fiscal years</option><option value="5">last 5 fiscal years</option><option value="1">last fiscal year</option><option value="ttm">TTM</option></select></span>
+  </div>
+  <table class="t" id="eff" style="max-width:640px"></table>
+  <div class="d-flex gap-2 flex-wrap mt-2">
+    <button class="btn btn-primary btn-sm" onclick="activateEffective()">Activate these as flat curves</button>
+    <span class="small text-secondary align-self-center">Sets EBIT margin, tax, D&amp;A, CapEx and ΔNWC to these values in every forecast year (growth is left alone); reset any curve to undo.</span>
+  </div>
+</div></div>
+<div class="modal fade" id="imp" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title">Paste DCF inputs</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body">
+    <p class="small text-secondary mb-2">Paste the JSON from the company-narrative prompt: it carries every input (six driver curves, discount-rate inputs, price, shares, debt, cash, stage, failure probability); a <code>null</code> key keeps the page's default for that key only. Rates are decimals, dollar amounts raw. A <code>ticker</code> key switches the page to that company.</p>
+    <textarea id="impText" class="form-control font-monospace" rows="14" spellcheck="false" placeholder='{"g1": 0.12, "target_margin": 0.32, ...}'></textarea>
+    <div id="impMsg" class="small mt-2"></div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary btn-sm" onclick="doImport()">Apply &amp; recalculate</button></div>
+</div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/fcff_ui.js?v=2"></script>
+<script src="/static/js/research_modal.js?v=1"></script>
+<script>
+const F_LEGACY = [
+ ['g1','Yr 1–5 growth','%'],['target_margin','Target op. margin','%'],['margin_years','Years to margin','n'],
+ ['wacc1','WACC yrs 1–5','%'],['wacc10','WACC yr 10','%'],['beta','Beta','n'],
+ ['erp','Equity risk premium','%'],['rf','Risk-free','%'],['g_term','Terminal growth','%'],
+ ['t_end','Tax rate yr 10','%'],['roc_cap','Max ROC used','%'],['moat','Moat','moat'],
+ ['shares','Shares (M)','M'],['debt','Debt ($B)','B'],['cash','Cash ($B)','B']];
+const F_STAGED = [
+ ['g1','Growth, years 1–5','%'],['gf0','Growth, year 6','%'],['gf1','Growth, year 7','%'],['gf2','Growth, year 8','%'],['gf3','Growth, year 9','%'],['gf4','Growth, year 10','%'],
+ ['fcf_margin','FCF margin','%'],['g_term','Terminal growth','%'],
+ ['wacc1','WACC (override)','%'],['beta','Beta','n'],['erp','Equity risk premium','%'],['rf','Risk-free','%'],
+ ['kd','Cost of debt','%'],['tax','Tax rate','%'],['rev0','Starting revenue ($B)','B'],
+ ['shares','Shares (M)','M'],['debt','Debt ($B)','B'],['cash','Cash ($B)','B']];
+const F_FCFF = [
+ ['g_term','Terminal growth','%'],['wacc1','WACC (override)','%'],['beta','Beta','n'],['erp','Equity risk premium','%'],['rf','Risk-free','%'],
+ ['kd','Cost of debt','%'],['rev0','Starting revenue ($B)','B'],['shares','Shares (M)','M'],['debt','Debt ($B)','B'],['cash','Cash ($B)','B'],
+ ['p_fail','Failure / distress prob.','%'],['liq_ps','Liquidation value ($/sh)','n']];
+const GROWTH_KEYS = new Set(['growth_fade','g2','g10']);   // pasted growth keys are absorbed into the year 6–10 boxes
+const isGf = k => /^gf\d$/.test(k);
+let F = F_FCFF, ENGINE = 'fcff', NOTES = {}, EXTRA = {};
+const $ = id => document.getElementById(id);
+const splitX = o => { const known=new Set(F.map(f=>f[0])), a={}, x={}; Object.entries(o).forEach(([k,v])=>(known.has(k)?a:x)[k]=v); return [a,x]; };
+const pct = x => x==null ? '–' : (x*100).toFixed(1)+'%', usd = x => x==null ? '–' : '$'+x.toFixed(2);
+function disp(k,t,v){ if(v==null) return ''; return t=='%' ? +(v*100).toFixed(3) : t=='M' ? +(v/1e6).toFixed(3) : t=='B' ? +(v/1e9).toFixed(4) : v; }  // enough digits that re-reading a box does not change the number
+function parse(t,s){ s=s.trim(); if(s==='') return null; if(t=='moat') return s; const n=parseFloat(s); return t=='%'?n/100:t=='M'?n*1e6:t=='B'?n*1e9:n; }
+function build(){
+  $('fields').innerHTML = F.map(([k,l,t])=> t=='moat'
+    ? `<div><label>${l}</label><select id="f_${k}" onchange="this.classList.add('set')"><option value="">(model)</option><option>none</option><option>narrow</option><option>wide</option></select></div>`
+    : `<div><label>${l}</label><input id="f_${k}" oninput="this.classList.toggle('set',this.value!=='')"></div>`).join('');
+}
+function setField(k,v){ const f=F.find(x=>x[0]===k), e=$('f_'+k); if(!f||!e) return; e.value=v==null?'':disp(k,f[2],v); e.classList.toggle('set',v!=null); }
+function fill(ov){
+  F.forEach(([k,l,t])=>{ const e=$('f_'+k); const v=ov[k];
+    e.value = v==null?'':(t=='moat'?v:disp(k,t,v)); e.classList.toggle('set', v!=null);
+    const dv = isGf(k) ? (D&&D.defaults&&D.defaults.growth_fade?D.defaults.growth_fade[+k.slice(2)]:null) : (D&&D.defaults?D.defaults[k]:null);
+    if(t!='moat') e.placeholder = dv!=null?disp(k,t,dv):''; });
+}
+// flat overrides: the shared fields; the five year 6–10 boxes travel as one growth_fade list (blank boxes keep their default)
+function overrides(){ const o={...EXTRA};
+  F.forEach(([k,l,t])=>{ if(isGf(k)) return; const v=parse(t,$('f_'+k).value); if(v!=null) o[k]=v; });
+  if(ENGINE==='staged'){ const gf=[0,1,2,3,4].map(k=>parse('%',$('f_gf'+k).value));
+    if(gf.some(x=>x!=null)){ const dv=(D&&D.defaults&&D.defaults.growth_fade)||[]; o.growth_fade=gf.map((x,k)=>x!=null?x:dv[k]); } }
+  if(ENGINE==='fcff' && Object.keys(TRO).length) o.traj={...TRO};
+  return o; }
+const STASH = {fcff:{}, staged:{}, current:{}};   // each engine's typed values, kept while you look at the other one
+function setEngine(v){
+  const snap=overrides(); STASH[ENGINE]=snap; ENGINE=v; F=(v==='fcff')?F_FCFF:(v==='staged')?F_STAGED:F_LEGACY; build();
+  const keys=new Set(F.map(f=>f[0])), incoming={...STASH[v]};
+  Object.entries(snap).forEach(([k,x])=>{ if(keys.has(k)) incoming[k]=x; });   // values typed for boxes both engines have carry over
+  fill(splitX(incoming)[0]);
+  if(v==='staged'&&incoming.growth_fade) incoming.growth_fade.forEach((x,k)=>setField('gf'+k,x));
+  calc();
+}
+// take the server's effective state back into the boxes (after a paste or when a saved file is loaded)
+function absorb(d, merged){
+  if(d.engine==='fcff'){ const {traj, ...rest}=merged; TRO=traj?Object.fromEntries(Object.entries(traj).filter(([k,v])=>TRAJ.includes(k)&&Array.isArray(v)&&v.length===10)):{}; merged=rest; }
+  const [a,x]=splitX(merged); fill(a);
+  if(d.engine==='staged'){
+    if(Object.keys(merged).some(k=>GROWTH_KEYS.has(k))) d.inputs.growth_fade.forEach((v,k)=>setField('gf'+k,v));
+    if(merged.t_end!=null && merged.tax==null) setField('tax', d.inputs.tax);   // tax falls back to t_end
+    EXTRA=Object.fromEntries(Object.entries(x).filter(([k])=>!GROWTH_KEYS.has(k)));
+  } else EXTRA=x;
+}
+async function doImport(){
+  const r=await post('/dcf/import',{text:$('impText').value}); const m=$('impMsg');
+  if(r.error){ m.innerHTML=`<span class="text-danger">${r.error}</span>`; return; }
+  const sameTk = !r.ticker || r.ticker==$('tk').value.trim().toUpperCase();
+  const {notes, ...ov} = r.overrides;
+  if(!sameTk){ $('tk').value=r.ticker; EXTRA={}; NOTES={}; }
+  const base = (!sameTk) ? {} : overrides(); const merged = {...base, ...ov}; if(base.traj&&ov.traj) merged.traj={...base.traj,...ov.traj};   // pasted curves replace only the drivers they name
+  if(!sameTk) loadSnap(r.ticker);
+  NOTES = notes ? (!sameTk ? notes : {...NOTES, ...notes}) : (!sameTk ? {} : NOTES);
+  const t=$('tk').value.trim().toUpperCase(); $('status').textContent='Calculating…';
+  const d=await post('/dcf/calc',{ticker:t,overrides:merged,engine:ENGINE}); show(d);
+  if(d.error){ m.innerHTML=`<span class="text-danger">${d.error}</span>`; return; }
+  absorb(d, merged); PASTED_STAGE=r.stage||''; setResearch(r, true); if(PASTED_STAGE) drawPresets(d);
+  $('saved').textContent='Applied '+r.applied.length+' of '+r.total+' inputs'+(r.missing.length?'; defaults used for: '+r.missing.join(', '):'; nothing left on defaults')+(r.warnings.length?' — '+r.warnings.join(' '):'')+' (not saved yet)';
+  bootstrap.Modal.getOrCreateInstance($('imp')).hide();
+}
+async function post(url, body){ const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); return r.json(); }
+async function load(){ const t=$('tk').value.trim().toUpperCase(); if(!t) return; loadSnap(t); PASTED_STAGE='';
+  $('status').textContent='Loading…'; const d=await post('/dcf/calc',{ticker:t,engine:ENGINE}); show(d);
+  if(!d.error){ const {notes,...lo}=d.loaded_overrides||{}; NOTES=notes||{}; absorb(d, lo); setResearchSaved(d.loaded_overrides, t); }
+  $('saved').textContent = (!d.error && Object.keys(d.loaded_overrides||{}).length) ? 'Loaded saved inputs/'+t+'.json' : ''; }
+async function calc(){ const t=$('tk').value.trim().toUpperCase(); $('status').textContent='Calculating…';
+  const d=await post('/dcf/calc',{ticker:t,overrides:overrides(),engine:ENGINE}); show(d); }
+function resetAll(){ EXTRA={}; TRO={}; F.forEach(([k])=>{ const e=$('f_'+k); e.value=''; e.classList.remove('set'); }); calc(); }
+async function save(){ const t=$('tk').value.trim().toUpperCase(); const o={...overrides(),...(Object.keys(NOTES).length?{notes:NOTES}:{})};
+  const r=await post('/dcf/save',{ticker:t,overrides:o}); $('saved').textContent=r.ok?'Saved → '+r.path:r.error; }
+const nf = (v,d)=> v.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+function snapFmt(v,f){ if(v==null) return '—'; return f=='m'?nf(v,0):f=='pct'?nf(v*100,1):f=='ps'?nf(v,2):f=='x1'?nf(v,1):nf(v,2); }
+async function loadSnap(t){
+  $('snapCard').style.display='none';
+  const d=await (await fetch('/dcf/snapshot?ticker='+encodeURIComponent(t))).json();
+  if(d.error){ $('snapCard').style.display='block'; $('snap').innerHTML=''; $('snapNotes').textContent='Snapshot unavailable: '+d.error; return; }
+  $('snapSub').textContent='· '+d.name+' · SEC EDGAR · USD';
+  $('snap').innerHTML='<tr><th></th>'+d.cols.map(c=>`<th>${c}</th>`).join('')+'</tr>'+d.sections.map(s=>
+    `<tr class="sec"><td colspan="${d.cols.length+1}">${s.title}</td></tr>`+s.rows.map(r=>
+      `<tr><td>${r.label}</td>`+r.vals.map(v=>`<td class="${v!=null&&v<0&&r.fmt!='x1'?'neg':''}">${snapFmt(v,r.fmt)}</td>`).join('')+'</tr>').join('')).join('');
+  $('snapNotes').innerHTML=d.notes.map(n=>`<div>${n}</div>`).join('');
+  $('snapCard').style.display='block';
+}
+
+// ── projection drivers: one editable curve per FCFF line item (engine 'fcff')
+function show(d){
+  if(d.error){ $('status').textContent='Error: '+d.error; return; }
+  D=d; const staged=d.engine==='staged', fc=d.engine==='fcff';
+  $('status').textContent=`${d.name} · ${d.sector} · data to ${d.as_of} · ${d.seconds}s`;
+  $('hero').style.display='block';
+  $('nm').textContent = fc ? d.ticker+' fair value (textbook FCFF, 10-year forecast)' : staged ? d.ticker+' fair value (simple DCF, '+d.horizon+'-year forecast)' : d.ticker+' base-case fair value ('+d.moat+' moat)';
+  $('fv').textContent=usd(d.fair_value); $('px').textContent=usd(d.price);
+  const over=d.gap<0; $('verdict').innerHTML=`<span class="${over?'over':'under'}">${Math.abs(d.gap*100).toFixed(0)}% ${over?'overvalued':'undervalued'}</span>`;
+  $('implied').textContent = fc && d.inputs.p_fail ? `Going-concern DCF ${usd(d.dcf_per_share)} × (1 − ${pct(d.inputs.p_fail)}) + liquidation ${usd(d.inputs.liq_ps)} × ${pct(d.inputs.p_fail)}` : fc ? `Price implies ~${pct(d.implied_g1)} year-1 growth (growth path shifted in years 1–5), or a ${pct(d.implied_wacc)} discount rate vs ${pct(d.inputs.wacc1)}` : staged ? `Price implies ~${pct(d.implied_g1)} growth in years 1–5, or a ${pct(d.implied_wacc)} discount rate vs ${pct(d.inputs.wacc1)}`
+    : `Price implies ~${pct(d.implied_g1)} growth (yrs 1–5), or a ${pct(d.implied_wacc)} discount rate vs ${pct(d.inputs.wacc1)}`;
+  if(fc){
+    $('sc').innerHTML='<tr><th></th><th>Yr-1 growth</th><th>Yr-10 op. margin</th><th>WACC</th><th>g</th><th>Value</th></tr>'+['Bear','Base','Bull'].map(k=>[k,d.scenarios[k]]).map(([k,s])=>`<tr><td>${k}</td><td>${pct(s.g1)}</td><td>${pct(s.margin)}</td><td>${pct(s.wacc)}</td><td>${pct(s.g_term)}</td><td><b>${usd(s.value)}</b></td></tr>`).join('');
+    $('mtTitle').textContent='Discount rate and terminal value';
+    const w=d.wacc_build, t=d.terminal;
+    $('mt').innerHTML=`<tr><td>Cost of equity (CAPM)</td><td>${pct(w.ke)}</td></tr><tr><td>Debt weight · after-tax cost of debt</td><td>${pct(w.wd)} · ${pct(w.kd_after_tax)}</td></tr><tr><td>WACC used (constant)</td><td><b>${pct(w.wacc)}</b></td></tr>`+
+      `<tr><td>Terminal FCFF (year 11)</td><td>$${nf(t.fcff_next/1e6,0)}M</td></tr><tr><td>Terminal reinvestment ÷ NOPAT</td><td>${t.terminal_reinvestment_rate==null?'–':pct(t.terminal_reinvestment_rate)}</td></tr>`+
+      `<tr><td>Implied return on new capital</td><td>${t.implied_terminal_roic==null?'–':pct(t.implied_terminal_roic)}</td></tr><tr><td>Terminal value share of EV</td><td>${pct(d.tv_share)}</td></tr><tr><td>Terminal value ÷ year-10 FCFF</td><td>${d.tv_multiple==null?'–':d.tv_multiple.toFixed(1)+'×'}</td></tr>`;
+  } else if(staged){
+    $('sc').innerHTML='<tr><th></th><th>Growth yrs 1–5</th><th>FCF margin</th><th>WACC</th><th>g</th><th>Value</th></tr>'+['Bear','Base','Bull'].map(k=>d.scenarios[k]).map((s,i)=>`<tr><td>${['Bear','Base','Bull'][i]}</td><td>${pct(s.g1)}</td><td>${pct(Object.values(s.margins)[0])}</td><td>${pct(s.wacc)}</td><td>${pct(s.g_term)}</td><td><b>${usd(s.value)}</b></td></tr>`).join('');
+    $('mtTitle').textContent='Growth phases and terminal value';
+    $('mt').innerHTML=d.stage_rows.map(s=>`<tr><td>Years ${s.first}–${s.last}</td><td>${pct(s.growth_first)}${s.growth_first!==s.growth_last?' → '+pct(s.growth_last):''} growth<br>${pct(s.margin_first)} FCF margin</td></tr>`).join('')+
+      `<tr><td>Terminal value share</td><td>${pct(d.tv_share)}</td></tr><tr><td>Terminal value ÷ year-${d.horizon} FCF</td><td>${d.tv_multiple==null?'–':d.tv_multiple.toFixed(1)+'×'}</td></tr>`;
+  } else {
+    $('sc').innerHTML='<tr><th></th><th>Growth</th><th>Margin</th><th>WACC</th><th>g</th><th>Value</th></tr>'+Object.entries(d.scenarios).map(([k,s])=>`<tr><td>${k}</td><td>${pct(s.g1)}</td><td>${pct(s.margin)}</td><td>${pct(s.wacc)}</td><td>${pct(s.g_term)}</td><td><b>${usd(s.value)}</b></td></tr>`).join('');
+    $('mtTitle').textContent='Moat → value / peer cross-check';
+    $('mt').innerHTML=Object.entries(d.moat_values).map(([k,v])=>`<tr><td>${k} moat</td><td>${usd(v)}</td></tr>`).join('')+
+      `<tr><td>Peer P/E (${d.n_peers} peers)</td><td>${usd(d.cross.pe)}</td></tr><tr><td>Peer EV/EBITDA</td><td>${usd(d.cross.ev_ebitda)}</td></tr><tr><td>Terminal value share</td><td>${pct(d.tv_share)}</td></tr>`;
+  }
+  const s=d.sensitivity;
+  $('sens').innerHTML='<tr><th>WACC \\ g</th>'+s.g.map(g=>`<th>${pct(g)}</th>`).join('')+'</tr>'+s.grid.map((row,i)=>`<tr><td>${pct(s.wacc[i])}</td>`+row.map((v,j)=>`<td class="${v==null?'':v>=d.price?'cell-hi':'cell-lo'} ${i==2&&j==2?'cell-base':''}">${v==null?'—':usd(v)}</td>`).join('')+'</tr>').join('');
+  $('flags').innerHTML=d.flags.map(f=>`<div class="flag">${f}</div>`).join('');
+  $('drvCard').style.display = fc ? 'block' : 'none'; $('fcCard').style.display = fc ? 'block' : 'none';
+  if(fc){ $('revCard').style.display='block'; drawReverse(d); drawHistory(d); drawEffective(); drawPresets(d); drawDrivers(d); drawForecast(d); } else { $('histCard').style.display='none'; $('effCard').style.display='none'; $('revCard').style.display='none'; }
+  const dates=Object.keys(d.price_hist), px=Object.values(d.price_hist);
+  Plotly.newPlot('ch1',[{x:dates,y:px,name:'Price',line:{color:'#3b82f6'}}],{height:280,margin:{t:30,b:30,l:40,r:10},title:{text:'Price vs fair value',font:{size:13}},
+    shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:d.fair_value,y1:d.fair_value,line:{dash:'dash',color:'#10b981'}}]},{displayModeBar:false});
+  Plotly.newPlot('ch2',[{x:d.fcff.map((_,i)=>'Y'+(i+1)),y:d.fcff.map(v=>v/1e9),type:'bar',marker:{color:'#6366f1'}}],{height:280,margin:{t:30,b:30,l:40,r:10},title:{text:'Projected FCFF ($B)',font:{size:13}}},{displayModeBar:false});
+}
+build(); if($('tk').value) load();
+</script>
+</body>
+</html>

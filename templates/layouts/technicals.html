@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stock Elf - Technicals</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <style>
+    :root {
+      --bg-page:      #f0f4f8;
+      --bg-card:      #ffffff;
+      --bg-header:    #1e293b;
+      --accent-blue:  #3b82f6;
+      --accent-green: #10b981;
+      --accent-red:   #ef4444;
+      --accent-amber: #f59e0b;
+      --accent-purple:#8b5cf6;
+      --accent-teal:  #0d9488;
+      --text-primary: #1e293b;
+      --text-muted:   #64748b;
+      --border:       #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg-page); color: var(--text-primary); margin: 0; }
+
+    .site-header { background: var(--bg-header); color: #f8fafc; padding: .75rem 2rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .site-header h1 { font-size: 1.1rem; font-weight: 600; margin: 0; }
+
+    .nav-strip { background: #fff; border-bottom: 1px solid var(--border); padding: .4rem 2rem; display: flex; flex-wrap: wrap; gap: .25rem; }
+    .nav-strip a { text-decoration: none; color: var(--text-muted); font-size: .82rem; font-weight: 500; padding: .3rem .75rem; border-radius: 6px; transition: background .15s, color .15s; }
+    .nav-strip a:hover, .nav-strip a.active { background: var(--accent-blue); color: #fff; }
+
+    .ticker-bar { background: #fff; border-bottom: 1px solid var(--border); padding: .6rem 2rem; display: flex; align-items: center; gap: .6rem; }
+    .ticker-input { border: 1px solid var(--border); border-radius: 7px; padding: .38rem .75rem; font-size: .9rem; font-family: inherit; outline: none; width: 140px; text-transform: uppercase; }
+    .ticker-input:focus { border-color: var(--accent-blue); }
+    .go-btn { padding: .38rem 1rem; border-radius: 7px; font-size: .84rem; font-weight: 600; cursor: pointer; border: none; background: var(--accent-blue); color: #fff; }
+    .go-btn:hover { background: #2563eb; }
+
+    .main-content { padding: 1.25rem 2rem; }
+
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); overflow: hidden; margin-bottom: 1rem; }
+    .card-title-bar { background: #f8fafc; border-bottom: 1px solid var(--border); padding: .6rem 1.2rem; font-size: .78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .07em; display: flex; align-items: center; gap: .5rem; }
+    .card-body { padding: 1rem 1.2rem; }
+
+    /* ── Hero row ── */
+    .hero-row { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: .25rem; }
+    .hero-ticker { font-size: 2rem; font-weight: 800; }
+    .hero-name { font-size: 1rem; color: var(--text-muted); }
+    .hero-price { font-size: 1.8rem; font-weight: 700; }
+    .hero-sector { font-size: .75rem; color: var(--text-muted); background: #f1f5f9; padding: .15rem .55rem; border-radius: 5px; }
+
+    /* ── Overall verdict ── */
+    .verdict { display: inline-flex; align-items: center; gap: .4rem; padding: .35rem 1rem; border-radius: 8px; font-weight: 700; font-size: .95rem; }
+    .v-strong-buy  { background: #d1fae5; color: #065f46; }
+    .v-buy         { background: #dcfce7; color: #166534; }
+    .v-neutral     { background: #fef3c7; color: #78350f; }
+    .v-sell        { background: #fee2e2; color: #991b1b; }
+    .v-strong-sell { background: #fecaca; color: #7f1d1d; }
+
+    /* ── Trend pills ── */
+    .trend-grid { display: flex; gap: .75rem; flex-wrap: wrap; }
+    .trend-item { display: flex; flex-direction: column; align-items: center; gap: .25rem; min-width: 90px; }
+    .trend-label { font-size: .65rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); }
+    .trend-pill { padding: .25rem .75rem; border-radius: 20px; font-size: .78rem; font-weight: 700; }
+    .up   { background: #d1fae5; color: #065f46; }
+    .down { background: #fee2e2; color: #991b1b; }
+
+    /* ── Signal scorecard ── */
+    .signal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: .6rem; }
+    .signal-item { display: flex; align-items: center; justify-content: space-between; padding: .45rem .75rem; border-radius: 8px; border: 1px solid var(--border); background: #f8fafc; font-size: .82rem; }
+    .signal-item .s-name { font-weight: 500; }
+    .sig-bull { color: var(--accent-green); font-weight: 700; font-size: .75rem; }
+    .sig-bear { color: var(--accent-red);   font-weight: 700; font-size: .75rem; }
+    .sig-neut { color: var(--accent-amber); font-weight: 700; font-size: .75rem; }
+
+    /* ── Levels table ── */
+    .levels-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+    .level-col h6 { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: .5rem; }
+    .level-pill { display: flex; justify-content: space-between; align-items: center; padding: .3rem .65rem; border-radius: 6px; font-size: .82rem; font-weight: 600; margin-bottom: .3rem; }
+    .lp-res { background: #fee2e2; color: #991b1b; }
+    .lp-sup { background: #d1fae5; color: #065f46; }
+    .lp-fib { background: #ede9fe; color: #4c1d95; }
+    .fib-label { font-size: .68rem; font-weight: 400; color: #6d28d9; }
+
+    /* ── Indicator row ── */
+    .ind-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .75rem; }
+    .ind-item { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: .6rem .85rem; }
+    .ind-item .i-label { font-size: .65rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
+    .ind-item .i-value { font-size: 1.1rem; font-weight: 700; margin: .1rem 0; }
+    .ind-item .i-interp { font-size: .68rem; color: var(--text-muted); }
+
+    /* ── Risk panel ── */
+    .risk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: .75rem; }
+    .risk-item { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: .6rem .85rem; }
+    .risk-item .r-label { font-size: .65rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
+    .risk-item .r-value { font-size: 1.05rem; font-weight: 700; margin-top: .15rem; }
+
+    /* ── Copy button ── */
+    .copy-section { margin-top: .5rem; }
+    .copy-btn { display: flex; align-items: center; gap: .5rem; padding: .55rem 1.4rem; border-radius: 8px; font-size: .88rem; font-weight: 600; cursor: pointer; border: none; background: var(--accent-purple); color: #fff; transition: background .15s; }
+    .copy-btn:hover { background: #7c3aed; }
+    .copy-btn.copied { background: var(--accent-green); }
+
+    /* ── Empty state ── */
+    .empty-state { text-align: center; padding: 5rem 1rem; color: var(--text-muted); }
+    .empty-state i { font-size: 3rem; display: block; margin-bottom: .75rem; color: #cbd5e1; }
+    .empty-state p { font-size: .95rem; }
+  </style>
+<link rel="icon" type="image/svg+xml" href="/static/img/logo.svg">
+</head>
+<body>
+{% set brand_page = 'technicals' %}{% set brand_ticker = ticker %}
+{% include "layouts/_brand.html" %}
+
+
+<div class="site-header">
+  <i class="bi bi-graph-up" style="font-size:1.2rem;"></i>
+  <h1>Technical Analysis</h1>
+  {% if ticker %}<span style="color:#94a3b8;font-size:.9rem;">{{ ticker }}</span>{% endif %}
+</div>
+
+
+<div class="ticker-bar">
+  <input type="text" class="ticker-input" id="ticker-input" placeholder="e.g. MSFT" value="{{ ticker }}">
+  <button class="go-btn" onclick="goTicker()"><i class="bi bi-search"></i> Analyze</button>
+</div>
+
+<div class="main-content" id="main">
+
+{% if not ticker %}
+<div class="empty-state">
+  <i class="bi bi-graph-up-arrow"></i>
+  <p>Enter a ticker symbol above to run a full technical analysis.</p>
+</div>
+
+{% elif data and data != '{}' %}
+<div id="ta-content"></div>
+
+<script>
+const D = {{ data | safe }};
+
+if (D.error) {
+  document.getElementById('ta-content').innerHTML = `
+    <div class="empty-state"><i class="bi bi-exclamation-circle"></i><p>Error: ${D.error}</p></div>`;
+} else {
+  buildPage(D);
+}
+
+function buildPage(d) {
+  const el = document.getElementById('ta-content');
+
+  // ── Verdict class ──
+  const vcls = {
+    'Strong Buy':  'v-strong-buy',
+    'Buy':         'v-buy',
+    'Neutral':     'v-neutral',
+    'Sell':        'v-sell',
+    'Strong Sell': 'v-strong-sell',
+  }[d.overall] || 'v-neutral';
+
+  const verdictIcon = {
+    'Strong Buy': '⬆⬆', 'Buy': '⬆', 'Neutral': '↔', 'Sell': '⬇', 'Strong Sell': '⬇⬇'
+  }[d.overall] || '↔';
+
+  el.innerHTML = `
+
+  <!-- ── Hero ── -->
+  <div class="card">
+    <div class="card-body">
+      <div class="hero-row">
+        <span class="hero-ticker">${d.ticker}</span>
+        <span class="hero-name">${d.name || ''}</span>
+        <span class="hero-sector">${d.sector || ''}</span>
+      </div>
+      <div class="hero-row" style="margin-top:.5rem;">
+        <span class="hero-price">$${fmt(d.price)}</span>
+        <span class="verdict ${vcls}">${verdictIcon} ${d.overall}</span>
+        <span style="font-size:.78rem;color:var(--text-muted);">${d.bull_count} bullish / ${d.bear_count} bearish of ${d.signal_total} signals</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Trend ── -->
+  <div class="card">
+    <div class="card-title-bar"><i class="bi bi-arrow-trend-up"></i> Trend Direction</div>
+    <div class="card-body">
+      <div class="trend-grid">
+        ${trendItem('Daily', d.daily_trend)}
+        ${trendItem('Weekly', d.weekly_trend)}
+        ${trendItem('Monthly', d.monthly_trend)}
+        ${trendItem('vs SMA 50', d.price > d.sma50 ? 'Uptrend' : 'Downtrend')}
+        ${trendItem('vs SMA 100', d.sma100 ? (d.price > d.sma100 ? 'Uptrend' : 'Downtrend') : 'N/A')}
+        ${trendItem('vs SMA 200', d.sma200 ? (d.price > d.sma200 ? 'Uptrend' : 'Downtrend') : 'N/A')}
+        ${trendItem('Golden/Death Cross', d.sma50 > d.sma200 ? 'Golden Cross ✓' : 'Death Cross ✗')}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Chart ── -->
+  <div class="card">
+    <div class="card-title-bar"><i class="bi bi-bar-chart-line"></i> Price Chart (1 Year)</div>
+    <div id="price-chart" style="height:420px;"></div>
+  </div>
+
+  <!-- ── RSI + MACD ── -->
+  <div class="card">
+    <div class="card-title-bar"><i class="bi bi-activity"></i> Momentum — RSI & MACD</div>
+    <div id="rsi-chart" style="height:200px;"></div>
+    <div id="macd-chart" style="height:200px;"></div>
+  </div>
+
+  <!-- ── Volume ── -->
+  <div class="card">
+    <div class="card-title-bar"><i class="bi bi-bar-chart"></i> Volume & OBV</div>
+    <div id="vol-chart" style="height:200px;"></div>
+  </div>
+
+  <!-- ── Indicators ── -->
+  <div class="card">
+    <div class="card-title-bar"><i class="bi bi-speedometer2"></i> Key Indicators</div>
+    <div class="card-body">
+      <div class="ind-grid">
+        ${indItem('RSI (14)', d.rsi?.toFixed(1), rsiInterp(d.rsi))}
+        ${indItem('MACD', d.macd?.toFixed(2), d.macd > d.macd_signal ? 'Above signal — bullish' : 'Below signal — bearish')}
+        ${indItem('MACD Signal', d.macd_signal?.toFixed(2), '')}
+        ${indItem('BB Upper', '$'+fmt(d.bb_upper), '')}
+        ${indItem('BB Mid', '$'+fmt(d.bb_mid), '')}
+        ${indItem('BB Lower', '$'+fmt(d.bb_lower), bbInterp(d.price, d.bb_upper, d.bb_lower))}
+        ${indItem('SMA 50', '$'+fmt(d.sma50), '')}
+        ${indItem('SMA 100', '$'+fmt(d.sma100), '')}
+        ${indItem('SMA 200', '$'+fmt(d.sma200), '')}
+        ${indItem('EMA 20', '$'+fmt(d.ema20), '')}
+        ${indItem('ATR (14)', '$'+fmt(d.atr), 'Avg daily range')}
+        ${indItem('Volume Ratio', d.vol_ratio?.toFixed(2)+'×', d.vol_ratio > 1.2 ? 'Above avg — strong' : 'Below avg — weak')}
+        ${indItem('OBV Trend', d.obv_trend, d.obv_trend === 'Rising' ? 'Buyers in control' : 'Sellers in control')}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Signal Scorecard ── -->
+  <div class="card">
+    <div class="card-title-bar"><i class="bi bi-clipboard-check"></i> Signal Scorecard</div>
+    <div class="card-body">
+      <div class="signal-grid">
+        ${Object.entries(d.signals).map(([name, val]) => signalItem(name, val)).join('')}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Levels ── -->
+  <div class="card">
+    <div class="card-title-bar"><i class="bi bi-distribute-vertical"></i> Support, Resistance & Fibonacci</div>
+    <div class="card-body">
+      <div class="levels-grid">
+        <div class="level-col">
+          <h6><i class="bi bi-arrow-up-circle"></i> Resistance</h6>
+          ${d.resistance.map(v => `<div class="level-pill lp-res"><span>$${v}</span><span style="font-size:.7rem;">↑ ${pctFrom(d.price, v)}</span></div>`).join('') || '<span style="color:var(--text-muted);font-size:.82rem;">None nearby</span>'}
+        </div>
+        <div class="level-col">
+          <h6><i class="bi bi-arrow-down-circle"></i> Support</h6>
+          ${d.support.map(v => `<div class="level-pill lp-sup"><span>$${v}</span><span style="font-size:.7rem;">↓ ${pctFrom(d.price, v)}</span></div>`).join('') || '<span style="color:var(--text-muted);font-size:.82rem;">None nearby</span>'}
+        </div>
+        <div class="level-col">
+          <h6><i class="bi bi-moisture"></i> Fibonacci (90-day)</h6>
+          ${Object.entries(d.fib_levels).map(([lbl, v]) => `<div class="level-pill lp-fib"><span>$${v}</span><span class="fib-label">${lbl}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Risk ── -->
+  <div class="card">
+    <div class="card-title-bar"><i class="bi bi-shield-exclamation"></i> Risk Parameters (2× ATR)</div>
+    <div class="card-body">
+      <div class="risk-grid">
+        ${riskItem('Current Price', '$'+fmt(d.price), 'var(--text-primary)')}
+        ${riskItem('ATR (14-day)', '$'+fmt(d.atr), 'var(--text-muted)')}
+        ${riskItem('Stop Loss (Long)', '$'+fmt(d.stop_loss_long), 'var(--accent-red)')}
+        ${riskItem('Stop Loss (Short)', '$'+fmt(d.stop_loss_short), 'var(--accent-green)')}
+        ${riskItem('Risk per Share (Long)', '$'+fmt(d.price - d.stop_loss_long), 'var(--accent-amber)')}
+        ${riskItem('Next Resistance', d.resistance.length ? '$'+d.resistance[0] : '—', 'var(--accent-green)')}
+        ${riskItem('R:R (to 1st Resistance)', d.resistance.length ? rrRatio(d.price, d.stop_loss_long, d.resistance[0]) : '—', 'var(--accent-blue)')}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Copy Summary ── -->
+  <div class="card copy-section">
+    <div class="card-title-bar"><i class="bi bi-clipboard"></i> AI Report Card — Copy & Paste into an LLM</div>
+    <div class="card-body">
+      <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:.75rem;">
+        Copy the full technical summary below and paste it into an LLM to get a trade plan, pattern identification, and qualitative interpretation.
+      </p>
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+        <button class="copy-btn" id="copy-btn" onclick="copySummary()">
+          <i class="bi bi-clipboard-fill"></i> Copy Technical Summary
+        </button>
+        <button class="copy-btn" id="csv-btn" onclick="downloadCSV()" style="background:var(--accent-teal);">
+          <i class="bi bi-download"></i> Download Price History CSV
+        </button>
+        <button class="copy-btn" id="csv-copy-btn" onclick="copyCSV()" style="background:var(--accent-teal);">
+          <i class="bi bi-clipboard-fill"></i> Copy Price History CSV
+        </button>
+      </div>
+    </div>
+  </div>
+
+  `;
+
+  buildCharts(d);
+}
+
+// ── Chart builder ─────────────────────────────────────────────────────────────
+function buildCharts(d) {
+  const dates = d.dates;
+  const layout_base = {
+    paper_bgcolor: 'transparent', plot_bgcolor: '#f8fafc',
+    margin: { t: 10, r: 20, l: 60, b: 30 },
+    legend: { orientation: 'h', y: 1.08, font: { size: 10 } },
+    xaxis: { showgrid: false, color: '#64748b', tickfont: { size: 10 } },
+    yaxis: { showgrid: true, gridcolor: '#e2e8f0', color: '#64748b', tickfont: { size: 10 } },
+    hovermode: 'x unified',
+    font: { family: 'Inter, sans-serif' },
+  };
+
+  // ── Price chart ──
+  const candle = {
+    type: 'candlestick', x: dates,
+    open: d.open, high: d.high, low: d.low, close: d.close,
+    name: d.ticker, increasing: { line: { color: '#10b981' } }, decreasing: { line: { color: '#ef4444' } },
+  };
+  const ma50  = { type: 'scatter', x: dates, y: d.s_sma50,  name: 'SMA 50',  line: { color: '#3b82f6', width: 1.5 }, hovertemplate: 'SMA50: $%{y:.2f}' };
+  const ma100 = { type: 'scatter', x: dates, y: d.s_sma100, name: 'SMA 100', line: { color: '#f59e0b', width: 1.5 }, hovertemplate: 'SMA100: $%{y:.2f}' };
+  const ma200 = { type: 'scatter', x: dates, y: d.s_sma200, name: 'SMA 200', line: { color: '#ef4444', width: 1.5, dash: 'dot' }, hovertemplate: 'SMA200: $%{y:.2f}' };
+  const bb_u  = { type: 'scatter', x: dates, y: d.s_bb_upper, name: 'BB Upper', line: { color: '#8b5cf6', width: 1, dash: 'dash' }, opacity: .6 };
+  const bb_l  = { type: 'scatter', x: dates, y: d.s_bb_lower, name: 'BB Lower', line: { color: '#8b5cf6', width: 1, dash: 'dash' }, fill: 'tonexty', fillcolor: 'rgba(139,92,246,.06)', opacity: .6 };
+
+  // Add support/resistance lines as shapes
+  const shapes = [];
+  (d.resistance || []).slice(0,3).forEach(v => shapes.push({ type: 'line', x0: dates[0], x1: dates[dates.length-1], y0: v, y1: v, line: { color: '#ef4444', width: 1, dash: 'dot' }, opacity: .5 }));
+  (d.support    || []).slice(0,3).forEach(v => shapes.push({ type: 'line', x0: dates[0], x1: dates[dates.length-1], y0: v, y1: v, line: { color: '#10b981', width: 1, dash: 'dot' }, opacity: .5 }));
+
+  Plotly.newPlot('price-chart', [candle, bb_u, bb_l, ma50, ma100, ma200],
+    { ...layout_base, shapes, margin: { t: 10, r: 20, l: 70, b: 30 } }, { responsive: true, displayModeBar: false });
+
+  // ── RSI ──
+  const rsiLine = { type: 'scatter', x: dates, y: d.s_rsi, name: 'RSI', line: { color: '#8b5cf6', width: 2 }, fill: 'tozeroy', fillcolor: 'rgba(139,92,246,.08)' };
+  Plotly.newPlot('rsi-chart', [rsiLine], {
+    ...layout_base,
+    yaxis: { ...layout_base.yaxis, range: [0, 100], tickvals: [30, 50, 70] },
+    shapes: [
+      { type: 'line', x0: dates[0], x1: dates[dates.length-1], y0: 70, y1: 70, line: { color: '#ef4444', dash: 'dash', width: 1 } },
+      { type: 'line', x0: dates[0], x1: dates[dates.length-1], y0: 30, y1: 30, line: { color: '#10b981', dash: 'dash', width: 1 } },
+    ],
+    annotations: [
+      { x: dates[dates.length-1], y: 70, text: 'Overbought', showarrow: false, font: { size: 9, color: '#ef4444' }, xanchor: 'right' },
+      { x: dates[dates.length-1], y: 30, text: 'Oversold',   showarrow: false, font: { size: 9, color: '#10b981' }, xanchor: 'right' },
+    ],
+  }, { responsive: true, displayModeBar: false });
+
+  // ── MACD ──
+  const macdLine = { type: 'scatter', x: dates, y: d.s_macd,        name: 'MACD',   line: { color: '#3b82f6', width: 2 } };
+  const sigLine  = { type: 'scatter', x: dates, y: d.s_macd_signal, name: 'Signal', line: { color: '#f59e0b', width: 1.5 } };
+  const histBar  = {
+    type: 'bar', x: dates, y: d.s_macd_hist, name: 'Histogram',
+    marker: { color: d.s_macd_hist.map(v => v >= 0 ? 'rgba(16,185,129,.5)' : 'rgba(239,68,68,.5)') }
+  };
+  Plotly.newPlot('macd-chart', [histBar, macdLine, sigLine], { ...layout_base, barmode: 'overlay' }, { responsive: true, displayModeBar: false });
+
+  // ── Volume + OBV ──
+  const volBar = {
+    type: 'bar', x: dates, y: d.volume, name: 'Volume',
+    marker: { color: 'rgba(59,130,246,.35)' }, yaxis: 'y'
+  };
+  const obvLine = { type: 'scatter', x: dates, y: d.s_obv, name: 'OBV', line: { color: '#0d9488', width: 1.5 }, yaxis: 'y2' };
+  const volMa   = { type: 'scatter', x: dates, y: d.s_vol_ma20, name: 'Vol MA20', line: { color: '#f59e0b', width: 1.5, dash: 'dash' }, yaxis: 'y' };
+  Plotly.newPlot('vol-chart', [volBar, volMa, obvLine], {
+    ...layout_base,
+    yaxis:  { ...layout_base.yaxis, title: 'Volume' },
+    yaxis2: { overlaying: 'y', side: 'right', showgrid: false, color: '#0d9488', tickfont: { size: 9 } },
+  }, { responsive: true, displayModeBar: false });
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmt(v) { return v != null ? Number(v).toFixed(2) : '—'; }
+function pctFrom(base, target) {
+  const p = ((target - base) / base * 100);
+  return (p >= 0 ? '+' : '') + p.toFixed(1) + '%';
+}
+function rrRatio(price, stop, target) {
+  if (!stop || !target) return '—';
+  const risk   = price - stop;
+  const reward = target - price;
+  if (risk <= 0) return '—';
+  return (reward / risk).toFixed(1) + ':1';
+}
+function rsiInterp(v) {
+  if (!v) return '';
+  if (v > 70) return 'Overbought — caution';
+  if (v < 30) return 'Oversold — potential bounce';
+  if (v > 55) return 'Momentum building';
+  if (v < 45) return 'Weakening momentum';
+  return 'Neutral zone';
+}
+function bbInterp(price, upper, lower) {
+  if (!price || !upper || !lower) return '';
+  if (price > upper) return 'Price above upper band — extended';
+  if (price < lower) return 'Price below lower band — oversold';
+  const mid = (upper + lower) / 2;
+  return price > mid ? 'Upper half — mild bullish' : 'Lower half — mild bearish';
+}
+function trendItem(label, val) {
+  const isUp = val && (val.toLowerCase().includes('up') || val.includes('✓'));
+  const cls  = isUp ? 'up' : (val === 'N/A' ? '' : 'down');
+  return `<div class="trend-item"><span class="trend-label">${label}</span><span class="trend-pill ${cls}">${val}</span></div>`;
+}
+function signalItem(name, val) {
+  const cls  = val === 'bullish' ? 'sig-bull' : val === 'bearish' ? 'sig-bear' : 'sig-neut';
+  const icon = val === 'bullish' ? '▲' : val === 'bearish' ? '▼' : '↔';
+  return `<div class="signal-item"><span class="s-name">${name}</span><span class="${cls}">${icon} ${val}</span></div>`;
+}
+function indItem(label, value, interp) {
+  return `<div class="ind-item"><div class="i-label">${label}</div><div class="i-value">${value ?? '—'}</div><div class="i-interp">${interp || ''}</div></div>`;
+}
+function riskItem(label, value, color) {
+  return `<div class="risk-item"><div class="r-label">${label}</div><div class="r-value" style="color:${color}">${value}</div></div>`;
+}
+
+// ── Copy summary ──────────────────────────────────────────────────────────────
+function copySummary() {
+  const d = D;
+  const lines = [
+    `TECHNICAL ANALYSIS REPORT — ${d.ticker} (${d.name})`,
+    `Date: ${new Date().toLocaleDateString()}`,
+    `Current Price: $${fmt(d.price)} | Sector: ${d.sector}`,
+    ``,
+    `=== TREND DIRECTION ===`,
+    `Daily:   ${d.daily_trend}`,
+    `Weekly:  ${d.weekly_trend}`,
+    `Monthly: ${d.monthly_trend}`,
+    `SMA 50 vs SMA 200: ${d.sma50 > d.sma200 ? 'Golden Cross (bullish)' : 'Death Cross (bearish)'}`,
+    ``,
+    `=== MOVING AVERAGES ===`,
+    `SMA 50:  $${fmt(d.sma50)}  → Price is ${d.price > d.sma50 ? 'ABOVE' : 'BELOW'}`,
+    `SMA 100: $${fmt(d.sma100)} → Price is ${d.price > d.sma100 ? 'ABOVE' : 'BELOW'}`,
+    `SMA 200: $${fmt(d.sma200)} → Price is ${d.price > d.sma200 ? 'ABOVE' : 'BELOW'}`,
+    `EMA 20:  $${fmt(d.ema20)}`,
+    ``,
+    `=== MOMENTUM INDICATORS ===`,
+    `RSI (14): ${d.rsi?.toFixed(1)} — ${rsiInterp(d.rsi)}`,
+    `MACD: ${fmt(d.macd)} | Signal: ${fmt(d.macd_signal)} | Histogram: ${fmt(d.macd_hist)}`,
+    `MACD vs Signal: ${d.macd > d.macd_signal ? 'Bullish crossover' : 'Bearish crossover'}`,
+    ``,
+    `=== BOLLINGER BANDS ===`,
+    `Upper: $${fmt(d.bb_upper)} | Mid: $${fmt(d.bb_mid)} | Lower: $${fmt(d.bb_lower)}`,
+    `Current position: ${bbInterp(d.price, d.bb_upper, d.bb_lower)}`,
+    ``,
+    `=== VOLUME ANALYSIS ===`,
+    `Volume vs 20-day avg: ${d.vol_ratio?.toFixed(2)}× (${d.vol_ratio > 1.2 ? 'Above average — strong conviction' : 'Below average — weak conviction'})`,
+    `OBV Trend (5-day): ${d.obv_trend}`,
+    ``,
+    `=== SUPPORT & RESISTANCE ===`,
+    `Resistance levels: ${d.resistance.map(v => '$'+v).join(', ') || 'None identified'}`,
+    `Support levels:    ${d.support.map(v => '$'+v).join(', ') || 'None identified'}`,
+    ``,
+    `=== FIBONACCI RETRACEMENTS (90-day swing: $${d.swing_low} → $${d.swing_high}) ===`,
+    ...Object.entries(d.fib_levels).map(([lbl, v]) => `${lbl.padEnd(8)} $${v}`),
+    ``,
+    `=== ATR & RISK PARAMETERS ===`,
+    `ATR (14): $${fmt(d.atr)}`,
+    `Stop Loss (Long,  2×ATR): $${fmt(d.stop_loss_long)}`,
+    `Stop Loss (Short, 2×ATR): $${fmt(d.stop_loss_short)}`,
+    `Risk per share (long): $${fmt(d.price - d.stop_loss_long)}`,
+    `Nearest resistance: ${d.resistance.length ? '$'+d.resistance[0] : '—'}`,
+    `R:R to nearest resistance: ${d.resistance.length ? rrRatio(d.price, d.stop_loss_long, d.resistance[0]) : '—'}`,
+    ``,
+    `=== SIGNAL SCORECARD ===`,
+    ...Object.entries(d.signals).map(([k,v]) => `${k}: ${v.toUpperCase()}`),
+    `Overall: ${d.overall} (${d.bull_count} bullish / ${d.bear_count} bearish / ${d.signal_total} total)`,
+    ``,
+    `---`,
+    `Please provide:`,
+    `1. Chart pattern identification based on the above data`,
+    `2. Plain-English interpretation of what the technicals collectively suggest`,
+    `3. A trade plan with: ideal entry zone, stop loss, price target, and time horizon`,
+    `4. Confidence rating with reasoning (Strong Buy / Buy / Neutral / Sell / Strong Sell)`,
+    `5. Key risks to the thesis`,
+  ];
+
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.classList.add('copied');
+    btn.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = '<i class="bi bi-clipboard-fill"></i> Copy Technical Summary';
+    }, 2500);
+  });
+}
+
+function buildCSVString() {
+  if (!D || !D.dates) return '';
+  const d = D;
+  const seriesKeys = ['dates','open','high','low','close','volume',
+                      's_sma50','s_sma100','s_sma200','s_ema20',
+                      's_rsi','s_macd','s_macd_signal','s_macd_hist',
+                      's_bb_upper','s_bb_mid','s_bb_lower','s_obv','s_vol_ma20'];
+  const headers = ['Date','Open','High','Low','Close','Volume',
+                   'SMA50','SMA100','SMA200','EMA20',
+                   'RSI','MACD','MACD_Signal','MACD_Hist',
+                   'BB_Upper','BB_Mid','BB_Lower','OBV','VolMA20'];
+  const n = (d.dates || []).length;
+  const rows = [headers.join(',')];
+  for (let i = 0; i < n; i++) {
+    const row = seriesKeys.map(k => {
+      const v = (d[k] || [])[i];
+      return (v === null || v === undefined) ? '' : v;
+    });
+    rows.push(row.join(','));
+  }
+  return rows.join('\n');
+}
+
+function copyCSV() {
+  const csv = buildCSVString();
+  if (!csv) return;
+  navigator.clipboard.writeText(csv).then(() => {
+    const btn = document.getElementById('csv-copy-btn');
+    btn.classList.add('copied');
+    btn.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = '<i class="bi bi-clipboard-fill"></i> Copy Price History CSV';
+    }, 2500);
+  });
+}
+
+function downloadCSV() {
+  if (!D || !D.dates) return;
+  const d = D;
+  const csv = buildCSVString();
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (d.ticker || 'stock') + '_technicals.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+
+  const btn = document.getElementById('csv-btn');
+  btn.classList.add('copied');
+  btn.innerHTML = '<i class="bi bi-check-lg"></i> Downloaded!';
+  setTimeout(() => {
+    btn.classList.remove('copied');
+    btn.innerHTML = '<i class="bi bi-download"></i> Download Price History CSV';
+  }, 2500);
+}
+</script>
+
+{% else %}
+<div class="empty-state">
+  <i class="bi bi-exclamation-circle"></i>
+  <p>Could not load data. Check the ticker and try again.</p>
+</div>
+{% endif %}
+
+</div>
+
+<script>
+function goTicker() {
+  const t = document.getElementById('ticker-input').value.trim().toUpperCase();
+  if (t) window.location.href = '/technicals?ticker=' + encodeURIComponent(t);
+}
+document.getElementById('ticker-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') goTicker();
+});
+</script>
+</body>
+</html>

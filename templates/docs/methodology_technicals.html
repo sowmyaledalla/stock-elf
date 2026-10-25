@@ -1,0 +1,111 @@
+{% extends "docs/base.html" %}
+{% set brand_page = 'method' %}
+{% block title %}Technicals methodology{% endblock %}
+{% block body %}
+<p><a href="/methodology">&larr; Methodology</a></p>
+<h1>Technical analysis methodology</h1>
+<p class="lede">Technical analysis studies price and volume history to describe trend, momentum and volatility. It says nothing about what a company is worth. Stock Elf computes standard indicators from two years of daily prices and turns seven of them into a simple scorecard.</p>
+
+<div class="toc"><b>On this page</b><ol>
+  <li><a href="#data">Data</a></li>
+  <li><a href="#trend">Trend: moving averages</a></li>
+  <li><a href="#rsi">Momentum: RSI</a></li>
+  <li><a href="#macd">Momentum: MACD</a></li>
+  <li><a href="#bb">Volatility: Bollinger Bands and ATR</a></li>
+  <li><a href="#vol">Volume: ratio and OBV</a></li>
+  <li><a href="#levels">Levels: support, resistance, Fibonacci</a></li>
+  <li><a href="#score">The scorecard and overall rating</a></li>
+  <li><a href="#limits">Limitations</a></li>
+</ol></div>
+
+<h2 id="data">1. Data</h2>
+<p>Two years of daily open, high, low, close and volume from Yahoo Finance, adjusted for splits and dividends. Charts show the last 252 trading days (about one year). All indicators use the standard parameters below, computed with the <code>ta</code> Python library.</p>
+
+<h2 id="trend">2. Trend: moving averages</h2>
+<div class="formula">SMA(n) = average of the last n closes
+EMA(n) = &alpha; &times; close + (1 &minus; &alpha;) &times; EMA<sub>prev</sub>,   &alpha; = 2 / (n + 1)</div>
+<p>The app plots SMA 50, 100 and 200 and EMA 20. An EMA reacts faster than an SMA because it weights recent prices more.</p>
+<table class="t">
+  <tr><th>Trend label</th><th>Rule</th></tr>
+  <tr><td>Daily</td><td>Uptrend if price &gt; SMA 50, else Downtrend</td></tr>
+  <tr><td>Weekly</td><td>Price versus the average of the last 5 closes</td></tr>
+  <tr><td>Monthly</td><td>Price versus the average of the last 21 closes</td></tr>
+</table>
+<p><b>Golden cross / death cross.</b> When SMA 50 is above SMA 200 the app calls it a golden cross (a long-term uptrend); below, a death cross.</p>
+<div class="example"><h4>Example</h4>
+<p>Price $105, SMA 50 = $100, SMA 200 = $98. Price is above both averages, and SMA 50 is above SMA 200, so all three moving-average signals are <b>bullish</b>. If price fell to $97, the "Price vs SMA 50" and "Price vs SMA 200" signals would both turn bearish while the golden cross would still hold.</p></div>
+
+<h2 id="rsi">3. Momentum: RSI (14)</h2>
+<p>The relative strength index measures the balance of recent gains and losses on a 0&ndash;100 scale. It uses Wilder's smoothing over 14 days.</p>
+<div class="formula">RS  = average gain / average loss   (14-day, Wilder smoothing)
+RSI = 100 &minus; 100 / (1 + RS)</div>
+<table class="t"><tr><th>RSI</th><th>Reading</th><th>Signal in the scorecard</th></tr>
+  <tr><td>below 30</td><td>Oversold</td><td>Bullish (a bounce is more likely)</td></tr>
+  <tr><td>30 to 70</td><td>Normal</td><td>Neutral</td></tr>
+  <tr><td>above 70</td><td>Overbought</td><td>Bearish (a pullback is more likely)</td></tr></table>
+<div class="example"><h4>Example</h4>
+<p>Average daily gain 1.2, average daily loss 0.8. RS = 1.2 / 0.8 = 1.5. RSI = 100 &minus; 100 / 2.5 = <b>60</b>: neutral. If the average loss were 0.3 instead, RS = 4 and RSI = 80: overbought, so bearish.</p></div>
+
+<h2 id="macd">4. Momentum: MACD (12, 26, 9)</h2>
+<div class="formula">MACD line   = EMA(12) &minus; EMA(26)
+Signal line = EMA(9) of the MACD line
+Histogram   = MACD line &minus; Signal line</div>
+<p>When the MACD line is above its signal line, short-term momentum is stronger than the recent average: <b>bullish</b>. Below it: <b>bearish</b>. The histogram shows the gap.</p>
+<div class="example"><h4>Example</h4>
+<p>EMA(12) = 52.0 and EMA(26) = 50.5 give a MACD of 1.5. If the signal line is 1.1, the histogram is +0.4 and the MACD signal is bullish.</p></div>
+
+<h2 id="bb">5. Volatility: Bollinger Bands and ATR</h2>
+<div class="formula">Middle band = SMA(20)
+Upper band  = SMA(20) + 2 &times; standard deviation of the last 20 closes
+Lower band  = SMA(20) &minus; 2 &times; standard deviation of the last 20 closes
+
+True range = max(high &minus; low, |high &minus; prev close|, |low &minus; prev close|)
+ATR(14)    = 14-day average of the true range</div>
+<p><b>Bollinger signal:</b> price below the lower band is bullish (stretched down), above the upper band is bearish (stretched up), otherwise neutral.</p>
+<p><b>ATR stop distance:</b> the app shows long and short stop levels at 2 &times; ATR from the current price, as a volatility-based reference.</p>
+<div class="example"><h4>Example</h4>
+<p>SMA(20) = 100 and standard deviation = 5, so the bands are 90 and 110. A price of 112 is above the upper band: bearish. With ATR = 3 and price 100, a long stop sits at 100 &minus; 2 &times; 3 = <b>94</b>.</p></div>
+
+<h2 id="vol">6. Volume: ratio and OBV</h2>
+<div class="formula">Volume ratio = today's volume / 20-day average volume
+OBV = running total: add volume on up days, subtract it on down days</div>
+<p><b>Volume signal:</b> bullish if the ratio is above 1.2 (activity well above normal), otherwise neutral. OBV is displayed with a rising/falling label (today versus five days ago) but does not enter the score.</p>
+
+<h2 id="levels">7. Levels: support, resistance, Fibonacci</h2>
+<p><b>Support and resistance.</b> Over the last year the app finds local pivots: a day whose high is the highest of a centred 15-day window is a pivot high; a day whose low is the lowest of the window is a pivot low. Pivot highs above the current price are resistance and pivot lows below it are support. The five nearest levels of each are shown.</p>
+<p><b>Fibonacci retracements.</b> Over the last 90 trading days, take the swing high and low.</p>
+<div class="formula">level(x) = swing high &minus; x &times; (swing high &minus; swing low),   x = 0, 23.6%, 38.2%, 50%, 61.8%, 78.6%, 100%</div>
+<div class="example"><h4>Example</h4>
+<p>Swing high $120 and swing low $100, a range of $20. The 61.8% level is 120 &minus; 0.618 &times; 20 = <b>$107.64</b>, a place where a pullback is often watched for support.</p></div>
+
+<h2 id="score">8. The scorecard and overall rating</h2>
+<p>Seven signals are scored. Each is bullish, bearish or neutral.</p>
+<table class="t"><tr><th>#</th><th>Signal</th><th>Bullish when</th><th>Bearish when</th></tr>
+  <tr><td>1</td><td>Price vs SMA 50</td><td>price &gt; SMA 50</td><td>otherwise</td></tr>
+  <tr><td>2</td><td>Price vs SMA 200</td><td>price &gt; SMA 200</td><td>otherwise</td></tr>
+  <tr><td>3</td><td>SMA 50 vs SMA 200</td><td>SMA 50 &gt; SMA 200</td><td>otherwise</td></tr>
+  <tr><td>4</td><td>RSI</td><td>RSI &lt; 30</td><td>RSI &gt; 70</td></tr>
+  <tr><td>5</td><td>MACD</td><td>MACD &gt; signal</td><td>MACD &lt; signal</td></tr>
+  <tr><td>6</td><td>Bollinger Bands</td><td>price &lt; lower band</td><td>price &gt; upper band</td></tr>
+  <tr><td>7</td><td>Volume</td><td>ratio &gt; 1.2</td><td>never (neutral otherwise)</td></tr></table>
+<div class="formula">score = bullish signals / total signals
+
+score &ge; 0.70  Strong Buy
+score &ge; 0.55  Buy
+score &ge; 0.45  Neutral
+score &ge; 0.30  Sell
+below 0.30  Strong Sell</div>
+<div class="example"><h4>Example</h4>
+<p>Price is above SMA 50 and SMA 200, and SMA 50 is above SMA 200 (3 bullish). RSI is 60 (neutral). MACD is above its signal (bullish). Price is inside the bands (neutral). Volume ratio is 0.9 (neutral). That is 4 bullish out of 7, a score of 0.57: <b>Buy</b>.</p></div>
+<div class="note">Note how the scorecard works: neutral signals count in the total, and RSI and Bollinger Bands treat oversold as bullish (contrarian), while the moving averages follow the trend. A strong uptrend therefore tends to land at Buy, not Strong Buy, unless volume and momentum also line up.</div>
+
+<h2 id="limits">9. Limitations</h2>
+<ul>
+  <li>The rating is a mechanical tally of seven rules, equally weighted. It is a summary of what the chart looks like, not a forecast.</li>
+  <li>Moving averages lag; RSI can stay overbought for months in a strong trend; MACD gives false signals in sideways markets.</li>
+  <li>Parameters (14, 20, 50, 200, 12/26/9) are conventions, not optimised values.</li>
+  <li>Support, resistance and Fibonacci levels are approximate zones, and their usefulness is debated.</li>
+  <li>Daily data on thinly traded stocks can be noisy or have gaps.</li>
+</ul>
+<p>Reference: John Murphy, <i>Technical Analysis of the Financial Markets</i>; J. Welles Wilder, <i>New Concepts in Technical Trading Systems</i> (RSI, ATR).</p>
+{% endblock %}

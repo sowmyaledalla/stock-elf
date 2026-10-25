@@ -1,0 +1,24 @@
+{# Stock Elf brand bar, shown at the top of every page. Optional: {% set brand_ticker = ticker %} before include. #}
+<style>
+  .se-brand { background:#0b1220; border-bottom:1px solid #1e293b; padding:.5rem 1.5rem; display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap; font-family:'Inter',-apple-system,'Segoe UI',sans-serif; position:relative; z-index:50; }
+  .se-brand a.se-logo { display:flex; align-items:center; gap:.55rem; text-decoration:none; color:#fff; }
+  .se-brand a.se-logo img { height:34px; width:34px; }
+  .se-brand .se-name { font-size:1.15rem; font-weight:700; letter-spacing:-.01em; line-height:1.05; }
+  .se-brand .se-tag { font-size:.62rem; color:#d4a73c; letter-spacing:.06em; text-transform:uppercase; font-weight:600; }
+  .se-brand nav { display:flex; gap:.25rem; margin-left:auto; flex-wrap:wrap; }
+  .se-brand nav a { color:#cbd5e1; text-decoration:none; font-size:.85rem; font-weight:500; padding:.35rem .8rem; border-radius:6px; }
+  .se-brand nav a:hover { background:#1e293b; color:#fff; }
+  .se-brand nav a.on { background:#1d4ed8; color:#fff; }
+</style>
+{% set _t = ('?ticker=' ~ brand_ticker) if brand_ticker else '' %}
+<div class="se-brand">
+  <a class="se-logo" href="/"><img src="/static/img/logo.svg" alt="Stock Elf"><span><span class="se-name">Stock Elf</span><br><span class="se-tag">Self-service stock research</span></span></a>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/evaluate{{ _t }}" class="{{ 'on' if brand_page == 'evaluate' }}">Evaluate</a>
+    <a href="/dcf2{{ _t }}" class="{{ 'on' if brand_page == 'dcf' }}">DCF</a>
+    <a href="/technicals{{ _t }}" class="{{ 'on' if brand_page == 'technicals' }}">Technicals</a>
+    <a href="/how-to-use" class="{{ 'on' if brand_page == 'how' }}">How to use</a>
+    <a href="/methodology" class="{{ 'on' if brand_page == 'method' }}">Methodology</a>
+  </nav>
+</div>

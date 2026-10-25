@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stock Elf - DCF</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background:#f0f4f8; color:#1e293b; font-family:-apple-system,'Inter',sans-serif; }
+    .hdr { background:#1e293b; color:#f8fafc; padding:.75rem 2rem; display:flex; gap:1rem; align-items:center; flex-wrap:wrap; }
+    .hdr h1 { font-size:1.1rem; margin:0; font-weight:600; }
+    .hdr input { width:130px; text-transform:uppercase; }
+    .card-x { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:1rem 1.2rem; margin-bottom:1rem; }
+    .card-x h6 { font-size:.75rem; letter-spacing:.06em; text-transform:uppercase; color:#64748b; margin-bottom:.7rem; }
+    table.t { width:100%; font-size:.85rem; } table.t td, table.t th { padding:3px 8px; text-align:right; border-bottom:1px solid #f1f5f9; }
+    table.t td:first-child, table.t th:first-child { text-align:left; }
+    table.snap, table.edg { white-space:nowrap; }
+    table.snap tr.sec td, table.edg tr.sec td { background:#f1f5f9; font-weight:600; text-align:left; font-size:.75rem; letter-spacing:.05em; text-transform:uppercase; color:#475569; }
+    table.snap td.neg, table.edg td.neg { color:#ef4444; }
+    table.snap th:last-child, table.snap td:last-child, table.edg th:last-child, table.edg td:last-child { background:#eff6ff; font-weight:600; }
+    table.edg td.tag { text-align:left; font-size:.7rem; color:#64748b; font-family:ui-monospace,monospace; max-width:230px; overflow:hidden; text-overflow:ellipsis; }
+    table.edg td.note { text-align:left; font-size:.7rem; color:#94a3b8; white-space:normal; min-width:180px; }
+    table.edg td[title] { cursor:help; }
+    .step { border-left:4px solid #3b82f6; }
+    .step .num { display:inline-block; background:#3b82f6; color:#fff; border-radius:50%; width:1.7rem; height:1.7rem; text-align:center; line-height:1.7rem; font-weight:700; font-size:.9rem; margin-right:.5rem; }
+    .step h5 { font-size:1.05rem; font-weight:700; margin-bottom:.6rem; }
+    .why { background:#f8fafc; border-radius:8px; padding:.6rem .8rem; font-size:.9rem; margin-bottom:.7rem; }
+    .formula { font-family:ui-monospace,Menlo,monospace; background:#1e293b; color:#e2e8f0; border-radius:8px; padding:.5rem .8rem; font-size:.85rem; margin-bottom:.7rem; overflow-x:auto; }
+    .calc { font-family:ui-monospace,Menlo,monospace; font-size:.85rem; line-height:1.9; }
+    .calc .res { font-weight:700; color:#1d4ed8; }
+    .result { background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:.5rem .8rem; font-weight:600; margin-top:.6rem; }
+    .inp { display:flex; flex-wrap:wrap; gap:.6rem 1rem; margin-bottom:.7rem; }
+    .inp label { font-size:.72rem; color:#64748b; display:block; margin:0; }
+    .inp input { width:110px; font-size:.85rem; padding:.2rem .5rem; border:1px solid #3b82f6; background:#eff6ff; border-radius:6px; }
+    .src { font-size:.72rem; color:#64748b; }
+    .bar { height:14px; background:#e2e8f0; border-radius:7px; overflow:hidden; } .bar > div { height:100%; background:#6366f1; }
+    .cell-hi { background:#dbeafe } .cell-lo { background:#fee2e2 } .cell-base { outline:2px solid #1e293b; }
+    .flag { font-size:.82rem; color:#92400e; background:#fffbeb; border-left:3px solid #f59e0b; padding:.3rem .6rem; margin-bottom:.3rem; }
+    .chip { font-size:.85rem; } .over { color:#f87171 } .under { color:#34d399 }
+    .big { font-size:2.2rem; font-weight:700; line-height:1; }
+    .meth { border:1px solid #e2e8f0; border-radius:10px; padding:.8rem; background:#fcfdff; }
+    .meth .mh { font-weight:700; font-size:.95rem; margin-bottom:.5rem; }
+    .meth .why { font-size:.8rem; }
+    .meth table.t { font-size:.75rem; } .meth table.t td, .meth table.t th { padding:2px 5px; }
+    .meth.chosen { border:2px solid #3b82f6; background:#f5f9ff; } label.pick { cursor:pointer; margin:0; }
+    .navs { background:#fff; border-bottom:1px solid #e2e8f0; padding:.4rem 2rem; display:flex; gap:1.1rem; flex-wrap:wrap; font-size:.85rem; }
+    .navs a { color:#475569; text-decoration:none; padding:.15rem 0; } .navs a:hover { color:#1d4ed8; }
+    .navs a.active { color:#1d4ed8; font-weight:600; border-bottom:2px solid #1d4ed8; }
+    .stepnav { position:sticky; top:0; z-index:40; background:#fff; border-bottom:1px solid #e2e8f0; box-shadow:0 1px 3px rgba(0,0,0,.06); display:none; }
+    .stepnav .in { display:flex; gap:.4rem; align-items:center; overflow-x:auto; white-space:nowrap; padding:.45rem 1rem; }
+    .stepnav .pill { border:1px solid #e2e8f0; background:#f8fafc; border-radius:999px; padding:.2rem .7rem; font-size:.8rem; cursor:pointer; color:#475569; text-decoration:none; flex:0 0 auto; }
+    .stepnav .pill:hover { border-color:#93c5fd; color:#1d4ed8; }
+    .stepnav .pill .n { display:inline-block; background:#cbd5e1; color:#fff; border-radius:50%; width:1.25rem; height:1.25rem; text-align:center; line-height:1.25rem; font-size:.7rem; margin-right:.3rem; }
+    .stepnav .pill.active { background:#eff6ff; border-color:#3b82f6; color:#1d4ed8; font-weight:600; } .stepnav .pill.active .n { background:#3b82f6; }
+    .stepnav .live { margin-left:auto; padding-left:1rem; font-size:.8rem; color:#334155; flex:0 0 auto; }
+    .stepnav .bar { height:3px; background:#e2e8f0; } .stepnav .bar > div { height:100%; width:0; background:#3b82f6; transition:width .2s; }
+    .step, #snapCard, #edgCard { scroll-margin-top:62px; }
+    .step h5 .helpbtn { font-size:.72rem; font-weight:500; margin-left:.6rem; vertical-align:middle; }
+    .stepfoot { display:flex; justify-content:space-between; margin-top:1rem; padding-top:.7rem; border-top:1px dashed #e2e8f0; }
+    .helptitle { font-weight:700; font-size:.9rem; margin:.9rem 0 .3rem; }
+    .timeline { display:flex; gap:4px; margin:.4rem 0; } .tl { border-radius:8px; padding:.45rem .7rem; font-size:.85rem; font-weight:600; color:#fff; min-width:90px; } .tl small { font-weight:400; opacity:.9; }
+    .tl.t1 { background:#3b82f6; } .tl.t2 { background:#6366f1; } .tl.t3 { background:#64748b; }
+    .mpick { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:.6rem; margin-bottom:.8rem; }
+    .mcard { border:1px solid #e2e8f0; border-radius:10px; padding:.6rem .8rem; cursor:pointer; background:#fcfdff; display:block; font-size:.85rem; margin:0; }
+    .mcard input { margin-right:.4rem; } .mcard span { display:block; font-size:.75rem; color:#64748b; margin-top:.2rem; } .mcard.chosen { border:2px solid #3b82f6; background:#f5f9ff; }
+    .subh { font-weight:700; font-size:.85rem; margin:1rem 0 .3rem; color:#334155; }
+    .wrap { max-width:1500px; margin:0 auto; padding:1rem; }
+  </style>
+  <link href="/static/css/fcff_ui.css?v=1" rel="stylesheet">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<link rel="icon" type="image/svg+xml" href="/static/img/logo.svg">
+</head>
+<body>
+{% set brand_page = 'dcf' %}{% set brand_ticker = ticker %}
+{% include "layouts/_brand.html" %}
+
+<div class="hdr">
+  <h1>DCF — step by step (textbook FCFF)</h1>
+  <input id="tk" class="form-control form-control-sm" placeholder="Ticker" value="{{ ticker }}">
+  <button class="btn btn-primary btn-sm" onclick="load()">Load</button>
+  <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#imp">Paste inputs…</button>
+  <button class="btn btn-outline-info btn-sm" id="rnBtn" style="display:none" onclick="openResearch()" title="The notes that came with the pasted JSON">Research notes</button>
+  <button class="btn btn-outline-light btn-sm" id="nbtn" onclick="copyNarrative()" title="Copies the Company Narrative prompt for this ticker; paste it into any LLM, then paste the JSON it returns into 'Paste inputs…'">Company narrative prompt</button>
+  <span id="status" class="small text-secondary"></span>
+  <span id="chip" class="chip ms-3"></span>
+  <span class="ms-auto small"><a class="text-info" href="/dcf?ticker={{ ticker }}">Quick DCF (all-in-one)</a> · <a class="text-info" href="/">Home</a></span>
+</div>
+<nav style="display:none" class="navs" id="navigation"></nav>
+<div class="stepnav" id="stepnav"><div class="in" id="stepnavIn"></div><div class="bar"><div id="stepbar"></div></div></div>
+<div class="wrap">
+
+  <div class="card-x" id="snapCard" style="display:none">
+    <h6>Financial snapshot <span class="text-secondary" style="text-transform:none" id="snapSub"></span></h6>
+    <div style="overflow-x:auto"><table class="t snap" id="snap"></table></div>
+    <div class="small text-secondary mt-2" id="snapNotes"></div>
+  </div>
+
+  <div class="card-x" id="edgCard" style="display:none">
+    <h6>Source data from SEC EDGAR <span class="text-secondary" style="text-transform:none" id="edgSub"></span></h6>
+    <p class="small text-secondary mb-2">Every number the DCF below uses comes from this table (amounts in $ millions, shares in millions). Hover a number to see the filing it came from; the XBRL tag column shows where to find it in the company's financial data. The blue TTM column is the latest 12 months.</p>
+    <div style="overflow-x:auto"><table class="t edg" id="edg"></table></div>
+    <div class="small text-secondary mt-2" id="edgNotes"></div>
+    <div class="small mt-2"><b>Filings used:</b> <span id="edgFilings"></span></div>
+  </div>
+
+  <div id="steps" style="display:none">
+  <div class="card-x step" id="step-1" data-short="History">
+    <h5><span class="num">1</span>What the business has really generated: the history</h5>
+    <div class="why">The cash a business can hand to <i>everyone</i> who funds it (lenders and shareholders) is its <b>free cash flow to the firm (FCFF)</b>. The textbook way to measure it starts from the income statement and builds it in five pieces, because each piece can then be forecast on its own: <b>EBIT</b> (operating profit before interest and tax), the <b>tax</b> on that profit (<b>NOPAT</b> = EBIT × (1 − tax rate) is what is left), plus <b>D&amp;A</b> (a cost that did not use cash), minus <b>CapEx</b> (cash spent on equipment and buildings) and minus the <b>increase in net working capital (ΔNWC)</b> (cash tied up in inventory and receivables, net of what suppliers fund). The table below applies those steps to the last 10 fiscal years of SEC filings. The quick alternative is <b>FCF = operating cash flow − capex</b>, shown underneath as a cross-check: it can differ because operating cash flow also adds back things like stock-based pay. Look at several years, not one peak.</div>
+    <div class="formula">FCFF = EBIT × (1 − tax rate) + D&amp;A − CapEx − ΔNWC        quick check: FCF = Operating cash flow + Capex (capex is negative)</div>
+    <div class="subh">Historical FCFF build <span class="src">· $ millions · same steps as the forecast in steps 2–3</span></div>
+    <div id="histCard" style="overflow-x:auto"><table class="t ft" id="hb"></table></div>
+    <div class="src mt-1">ΔNWC = change in (current assets − cash − ST investments) − (current liabilities − ST debt); positive means cash tied up. The TTM column compares the latest quarter with the last fiscal year-end, so it is noisy. Tax rate used is the effective rate clipped to 0–35%.</div>
+    <div class="subh">Quick check: reported free cash flow</div>
+    <div style="overflow-x:auto"><table class="t" id="s2tbl"></table></div>
+  </div>
+
+  <div class="card-x step" id="step-2" data-short="Curves">
+    <h5><span class="num">2</span>Forecast the six drivers: shape every curve for 10 years</h5>
+    <div class="why">Instead of one growth rate and one margin, each building block of FCFF gets its own <b>10-year curve</b>: <b>revenue growth</b>, <b>EBIT margin</b>, <b>tax rate</b>, <b>D&amp;A</b> and <b>CapEx</b> (both as % of revenue) and <b>ΔNWC</b> (as % of the <i>change</i> in revenue, because working capital grows with growth). The grey line is the company's own history, the dashed grey line is the model's default, and the blue line is yours. <b>Drag a blue point</b>, type in a year's box, <b>shift</b> the whole curve up or down, or <b>ramp</b> it from a Year-1 value to a Year-10 value. Defaults come from the SEC history: growth holds at the latest rate for 5 years then fades to terminal growth; margin stays at today's level; tax moves to 25%; CapEx's excess over D&amp;A shrinks as growth slows.<br><br><b>Company type</b> loads a starting set of curves for a life-cycle stage (young growth, growth, mature, declining; Damodaran). The page suggests one from the SEC history; use it as a starting point, then bend the curves with your own research. <b>Effective margins</b> (bottom of this step) average the history into one steady value per driver and can set the curves flat at those values.</div>
+    <div class="inp"><div><label>Starting revenue ($M)</label><input data-k="rev0" data-u="m"></div></div>
+    <div class="d-flex align-items-center gap-3 flex-wrap mb-1">
+      <span class="small">Company type <select id="preset" class="form-select form-select-sm d-inline-block" style="width:auto" onchange="applyPreset(this.value)"></select></span>
+      <button class="btn btn-outline-secondary btn-sm ms-auto" onclick="resetDrivers()">Reset all curves</button>
+    </div>
+    <div id="stageBox" class="small mb-1"></div>
+    <div class="small text-secondary mb-2" id="presetNote"></div>
+    <div class="drv-grid" id="drvGrid"></div>
+    <div class="subh" id="effCardTop">Effective margins from SEC history <span class="src">· one steady value per driver, averaged over the window you pick</span></div>
+    <div id="effCard" style="display:none">
+      <div class="small mb-1">Window <select id="effWin" class="form-select form-select-sm d-inline-block" style="width:auto" onchange="drawEffective()"><option value="3">last 3 fiscal years</option><option value="5">last 5 fiscal years</option><option value="1">last fiscal year</option><option value="ttm">TTM</option></select></div>
+      <table class="t" id="eff" style="max-width:640px"></table>
+      <div class="d-flex gap-2 flex-wrap mt-2"><button class="btn btn-primary btn-sm" onclick="activateEffective()">Activate these as flat curves</button><span class="small text-secondary align-self-center">Sets EBIT margin, tax, D&amp;A, CapEx and ΔNWC to these values in every forecast year (growth is left alone).</span></div>
+    </div>
+  </div>
+
+  <div class="card-x step" id="step-3" data-short="FCFF build">
+    <h5><span class="num">3</span>Build free cash flow to the firm, year by year</h5>
+    <div class="why">With the curves set, each forecast year is built exactly like the history in step 1. <b>Revenue</b> grows by that year's growth rate; <b>EBIT</b> is revenue × the EBIT margin; <b>tax</b> is taken off EBIT to get <b>NOPAT</b>; <b>D&amp;A</b> is added back (it was deducted in EBIT but cost no cash); <b>CapEx</b> and the <b>increase in working capital</b> are subtracted because they are cash that must be reinvested. What remains, <b>FCFF</b>, is the cash available to lenders and shareholders, and is what steps 4–6 discount. Edit a curve in step 2 and this table, and everything after it, updates.</div>
+    <div class="formula">FCFF(t) = EBIT(t) × (1 − tax(t)) + D&amp;A(t) − CapEx(t) − ΔNWC(t)
+EBIT = Revenue × EBIT margin        D&amp;A, CapEx = % of revenue        ΔNWC = % × (Revenue(t) − Revenue(t−1))</div>
+    <div class="calc mb-2" id="s3sum"></div>
+    <div style="overflow-x:auto"><table class="t ft" id="ft"></table></div>
+  </div>
+
+  <div class="card-x step" id="step-4" data-short="Terminal">
+    <h5><span class="num">4</span>The terminal stage: after the last forecast year</h5>
+    <div class="why">A company doesn't stop after the forecast, and we can't forecast for ever. So we assume its cash flow grows at a slow, steady rate (<b>terminal growth, g</b>) for ever after and use the shortcut for a growing perpetuity — the <b>Gordon growth</b> formula (for example $100 a year for ever at 10% is worth 100 ÷ 0.10 = $1,000; growing 3% a year it is worth 100 ÷ (0.10 − 0.03) = $1,429). Two rules: <b>g must stay below the discount rate (WACC)</b>, or the value is infinite, and it should be near long-run economic growth (about 2–3%). Here the first terminal year is built from the <b>year-10 drivers</b> (revenue grows by g; margins, D&amp;A %, CapEx % and ΔNWC % stay at their year-10 values), so the terminal cash flow keeps paying for the investment that growth needs. If year-10 CapEx is only as high as D&amp;A, the model would assume growth for free: the check below shows the <b>return on new capital</b> that implies. The terminal value is often 50–80% of the total, so this input matters a lot.</div>
+    <div class="formula">Revenue(11) = Revenue(10) × (1 + g)        FCFF(11) = EBIT(11) × (1 − tax) + D&amp;A − CapEx − ΔNWC, all at year-10 ratios
+Terminal value = FCFF(11) ÷ (WACC − g)        Implied return on new capital = g ÷ (reinvestment ÷ NOPAT)</div>
+    <div class="inp"><div><label>Terminal growth g (%)</label><input data-k="g_term" data-u="pct"></div></div>
+    <div class="calc" id="termout"></div>
+  </div>
+
+  <div class="card-x step" id="step-5" data-short="Discount rate">
+    <h5><span class="num">5</span>The discount rate: WACC</h5>
+    <div class="why">Money received later is worth less than money today, because you could earn a return elsewhere in the meantime: <b>PV = Cash ÷ (1 + r)^n</b>. The rate <i>r</i> we use is the company's <b>WACC</b> (weighted average cost of capital): the return investors demand for funding it — a blend of what shareholders demand (<b>cost of equity</b>) and what lenders charge (<b>cost of debt</b>), weighted by how much of the company each provides. A riskier company has a higher WACC, so its future cash is worth less today. Cost of equity uses <b>beta</b> (how much the stock moves with the market) and the <b>equity risk premium (ERP)</b>, the extra return investors demand for stocks over risk-free Treasuries. Interest is tax-deductible, so debt's cost is reduced by the tax rate. FCFF belongs to lenders <i>and</i> shareholders, which is why it is discounted at WACC and not at the cost of equity alone.</div>
+    <div class="formula">Cost of equity = risk-free + beta × ERP        After-tax cost of debt = cost of debt × (1 − tax)<br>Debt weight = Debt ÷ (Debt + Market cap)        WACC = Equity weight × Cost of equity + Debt weight × After-tax cost of debt</div>
+    <div class="inp">
+      <div><label>Risk-free rate (%)</label><input data-k="rf" data-u="pct"></div>
+      <div><label>Beta</label><input data-k="beta" data-u="n"></div>
+      <div><label>Equity risk premium (%)</label><input data-k="erp" data-u="pct"></div>
+      <div><label>Pre-tax cost of debt (%)</label><input data-k="kd" data-u="pct"></div>
+      <div><label>Tax rate for debt shield (%)</label><input data-k="tax" data-u="pct"></div>
+      <div><label>Share price ($)</label><input data-k="price" data-u="n"></div>
+      <div><label>Shares (M)</label><input data-k="shares" data-u="m"></div>
+      <div><label>Total debt ($M)</label><input data-k="debt" data-u="m"></div>
+      <div><label>WACC override (%) — optional</label><input data-k="wacc1" data-u="pct" placeholder="blank = computed"></div></div>
+    <div id="s5warn"></div>
+    <div class="src mb-2">One WACC is used for every year. Share price, beta and risk-free rate are market data (not in EDGAR): price and beta from yfinance, risk-free = latest 10-year Treasury yield; ERP is Damodaran's published figure; cost of debt = risk-free + 1 point (an assumption — use a real bond yield if you have one). Shares = latest cover-page count on the newest filing; debt = short-term + long-term debt from EDGAR (operating leases are not counted: their cost is already inside EBIT). A pasted JSON replaces any of these.</div>
+    <div class="calc" id="s5out"></div>
+  </div>
+
+  <div class="card-x step" id="step-6" data-short="Value">
+    <h5><span class="num">6</span>From cash flows to value per share</h5>
+    <div class="why">Money received later is worth less than money today, so every forecast year's FCFF is <b>discounted</b>: <b>PV = Cash ÷ (1 + WACC)^year</b>. The <b>discount factor</b> (1 ÷ (1 + WACC)^year) is a number below 1 that shrinks each year. Add the discounted cash flows of all the forecast years, then add the discounted <b>terminal value</b> (it sits at the end of the last forecast year, so it is discounted from there). That total is the <b>enterprise value (EV)</b>: the whole operating business. Shareholders own the business <i>plus</i> its cash, <i>minus</i> what it owes lenders (cash is not in the operating cash flows, and lenders are paid first), so add cash and subtract <b>total</b> debt (short- and long-term; using only long-term debt is a common slip). Divide by shares for the value per share. For young or distressed companies you can also weigh in the chance the business fails: value = going-concern value × (1 − p) + liquidation value × p.</div>
+    <div class="formula">Discount factor(t) = 1 ÷ (1 + WACC)^t        PV(t) = FCFF(t) × Discount factor(t)<br>EV = Sum of PVs + PV of terminal value        Equity value = EV + Cash − Total debt        Value per share = Equity value ÷ Shares<br>Final value = DCF value × (1 − p) + Liquidation value × p        (p = 0 by default)</div>
+    <div class="subh">Discounting the forecast years</div>
+    <div class="calc mb-1" id="s6sum"></div>
+    <div class="mt-1"><button class="btn btn-outline-secondary btn-sm py-0" onclick="showTbl('s6tbl','Discounting, every forecast year')">Show discounting table</button></div><div class="d-none"><table class="t" id="s6tbl"></table></div>
+    <div class="subh">Terminal value</div>
+    <div class="calc" id="s7out"></div>
+    <div class="subh">Bridge to price per share</div>
+    <div class="inp"><div><label>Cash &amp; short-term investments ($M)</label><input data-k="cash" data-u="m"></div>
+      <div><label>Failure / distress probability (%)</label><input data-k="p_fail" data-u="pct"></div>
+      <div><label>Liquidation value ($/share)</label><input data-k="liq_ps" data-u="n"></div></div>
+    <div class="calc" id="s8out"></div>
+    <div id="s8res" class="result"></div>
+    <div id="s7flags" class="mt-2"></div>
+  </div>
+
+  <div class="card-x step" id="step-7" data-short="Sensitivity">
+    <h5><span class="num">7</span>How sure are we? Sensitivity</h5>
+    <div class="why">A DCF gives a <b>range</b>, not one number: small changes to the discount rate or terminal growth move the value a lot, and the terminal value is the least certain part. The grid recalculates the value per share for five discount rates (rows, your WACC in the middle) against five terminal growth rates (columns, your growth in the middle). Cells are <b>blue</b> where the value is at or above today's price and <b>red</b> where it is below; your base case is outlined. A dash means the discount rate is not above growth, which makes no sense. The scenarios below use the same engine with three sets of assumptions: <b>Bear</b> (growth in years 1–5 −3 points, easing back to your curve by year 10; EBIT margin −2 points in every year; WACC +1 point), <b>Base</b> (your curves) and <b>Bull</b> (growth +3 points, EBIT margin +3 points, WACC −1 point). They shift your curves, so they stay meaningful after you reshape them.</div>
+    <div class="small fw-semibold mb-1">Value per share: WACC (rows) × terminal growth (columns)</div>
+    <div style="overflow-x:auto"><table class="t" id="sens"></table></div>
+    <div class="src mt-1" id="sensNote"></div>
+    <div class="small fw-semibold mt-3 mb-1">Scenarios</div>
+    <div style="overflow-x:auto"><table class="t" id="scen"></table></div>
+  </div>
+  <div class="card-x step" id="step-8" data-short="Reverse DCF">
+    <h5><span class="num">8</span>Reverse DCF: what is today's price already assuming?</h5>
+    <div class="why">Steps 1–7 asked what the business is worth <i>given your assumptions</i>. A <b>reverse DCF</b> flips that: it takes the <b>market price as given</b> and solves for the assumption the price implies. Start from the market <b>enterprise value</b> (market cap + debt − cash), keep the baseline cash flow, discount rate and terminal growth fixed, and solve for the revenue growth (or EBIT margin, terminal growth or discount rate) that makes the model's value equal the price. Then ask whether that is believable. If the price needs a margin the company has never earned, or growth far above anything in its history, you have found what the market is betting on. It is not a verdict: many combinations of growth and margin give the same price (see the trade-off table), and the answer depends on the rest of your curves.</div>
+    <div class="formula">Market EV = Price × Shares + Debt − Cash        Solve for x such that  DCF value per share (x) = Price        (x = growth, margin, terminal growth or WACC, one at a time)</div>
+    <div id="revBox"></div>
+  </div>
+  </div>
+</div>
+<div class="modal fade" id="imp" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title">Paste DCF inputs</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body">
+    <p class="small text-secondary mb-2">Paste the JSON from the company-narrative prompt. It carries every input: the six driver curves, discount-rate inputs, price, shares, debt, cash, stage and failure probability. Any key left <code>null</code> keeps the page's default for that key only. Rates are decimals, dollar amounts raw. Only the keys you paste change; everything else stays as it is. A <code>ticker</code> key switches the page to that company.</p>
+    <textarea id="impText" class="form-control font-monospace" rows="14" spellcheck="false" placeholder='{"g1": 0.12, "g2": 0.04, "fcf_margin": 0.19, ...}'></textarea>
+    <div id="impMsg" class="small mt-2"></div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary btn-sm" onclick="doImport()">Apply &amp; recalculate</button></div>
+</div></div></div>
+<div class="modal fade" id="helpModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" id="helpTitle"></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body" id="helpBody"></div>
+  <div class="modal-footer"><button class="btn btn-primary btn-sm" data-bs-dismiss="modal">Got it</button></div>
+</div></div></div>
+<div id="helpStore" class="d-none"></div>
+<div class="modal fade" id="tblModal" tabindex="-1"><div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" id="tblTitle"></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body"><div style="overflow-x:auto" id="tblBody"></div></div>
+</div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/fcff_ui.js?v=2"></script>
+<script src="/static/js/research_modal.js?v=1"></script>
+<script>
+const $ = id => document.getElementById(id);
+function buildNav(){ const t=encodeURIComponent($('tk').value.trim().toUpperCase()), q=t?'?ticker='+t:'';
+  $('navigation').innerHTML=[['Home','/'],['Evaluate','/evaluate'+q],['DCF','/dcf2'+q],['Technicals','/technicals'+q]]
+    .map(([l,h])=>`<a href="${h}"${l=='DCF'?' class="active"':''}>${l}</a>`).join(''); }
+const nf = (v,d)=> v.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+function fmt(v,f){ if(v==null) return '—'; return f=='m'?nf(v,0):f=='pct'?nf(v*100,1):f=='ps'?nf(v,2):f=='x1'?nf(v,1):f=='n'?nf(v,0):nf(v,2); }
+async function loadSnap(t){
+  $('snapCard').style.display='none';
+  const d=await (await fetch('/dcf/snapshot?ticker='+encodeURIComponent(t))).json();
+  if(d.error){ $('snapCard').style.display='block'; $('snap').innerHTML=''; $('snapNotes').textContent='Snapshot unavailable: '+d.error; return; }
+  $('snapSub').textContent='· '+d.name+' · SEC EDGAR · USD';
+  $('snap').innerHTML='<tr><th></th>'+d.cols.map(c=>`<th>${c}</th>`).join('')+'</tr>'+d.sections.map(s=>
+    `<tr class="sec"><td colspan="${d.cols.length+1}">${s.title}</td></tr>`+s.rows.map(r=>
+      `<tr><td>${r.label}</td>`+r.vals.map(v=>`<td class="${v!=null&&v<0&&r.fmt!='x1'?'neg':''}">${fmt(v,r.fmt)}</td>`).join('')+'</tr>').join('')).join('');
+  $('snapNotes').innerHTML=d.notes.map(n=>`<div>${n}</div>`).join('');
+  $('snapCard').style.display='block';
+}
+let E = null;
+async function loadEdgar(t){
+  $('edgCard').style.display='none';
+  const d=await (await fetch('/dcf2/data?ticker='+encodeURIComponent(t))).json();
+  if(d.error){ $('status').textContent='Error: '+d.error; return; }
+  E=d; $('edgSub').textContent='· '+d.name+' · CIK '+d.cik;
+  let sec='', h='<tr><th></th>'+d.cols.map(c=>`<th>${c}</th>`).join('')+'<th style="text-align:left">XBRL tag (latest)</th><th style="text-align:left">Note</th></tr>';
+  d.rows.forEach(r=>{
+    if(r.section!=sec){ sec=r.section; h+=`<tr class="sec"><td colspan="${d.cols.length+3}">${sec}</td></tr>`; }
+    const last=[...r.src].reverse().find(x=>x);
+    h+=`<tr><td>${r.label}</td>`+r.vals.map((v,i)=>{
+      const s=r.src[i]; const tip=s?`${s.tag} · ${s.form} filed ${s.filed} · ${s.accn}`:'';
+      return `<td class="${v!=null&&v<0?'neg':''}"${tip?` title="${tip}"`:''}>${fmt(v,r.unit)}</td>`; }).join('')+
+      `<td class="tag" title="${last?last.tag:''}">${last?last.tag:'calculated'}</td><td class="note">${r.note||''}</td></tr>`;
+  });
+  $('edg').innerHTML=h;
+  $('edgNotes').innerHTML=`<div>${d.market_note}</div>`;
+  $('edgFilings').innerHTML=d.filings.map(f=>`<a href="${f.url}" target="_blank" rel="noopener">${f.form} ${f.filed}</a>`).join(' · ');
+  $('edgCard').style.display='block';
+}
+// ── textbook FCFF DCF: the page collects inputs and curves; every number comes from the server (valuation/fcff.py via /dcf/calc).
+//    Shared curve editor, presets and forecast table live in /static/js/fcff_ui.js (the same code /dcf uses).
+let SCAL = {}, EXTRA = {}, NOTES = {}, timer = null;   // SCAL: boxes you typed ({key: value}); EXTRA: other saved/pasted keys; TRO (shared): edited curves
+const SCAL_KEYS = ['rev0','g_term','rf','beta','erp','kd','tax','price','shares','debt','cash','p_fail','liq_ps','wacc1'];
+const UNITS = {pct:[v=>v*100, v=>v/100, 2], m:[v=>v/1e6, v=>v*1e6, 1], n:[v=>v, v=>v, 3]};
+const D2 = v => '$'+nf(v,2), nf0 = v => nf(v,0), M0 = v => nf(v/1e6,0), P1 = v => nf(v*100,1)+'%', P2 = v => nf(v*100,2)+'%';
+const row = (cells, cls='') => '<tr'+(cls?` class="${cls}"`:'')+'>'+cells.map(c=>`<td>${c}</td>`).join('')+'</tr>';
+const hdr = cols => '<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr>';
+const T = (id,h,rows) => $(id).innerHTML = hdr(h)+rows.join('');
+function col(key){ return E.rows.find(r=>r.key==key).vals; }
+function showTbl(id,title){ $('tblTitle').textContent=title; $('tblBody').innerHTML='<table class="t">'+$(id).innerHTML+'</table>'; bootstrap.Modal.getOrCreateInstance($('tblModal')).show(); }
+function overridesBody(){ const o={...EXTRA,...SCAL}; if(Object.keys(TRO).length) o.traj={...TRO}; return o; }
+function calc(){ return recalc(); }                       // the shared curve editor calls calc() after every edit
+function schedule(){ clearTimeout(timer); timer=setTimeout(recalc,300); }
+function fillInputs(d){
+  document.querySelectorAll('#steps input[data-u]').forEach(e=>{ if(document.activeElement===e) return;
+    const k=e.dataset.k, [to,,dp]=UNITS[e.dataset.u];
+    if(k==='wacc1'){ e.value = SCAL.wacc1==null?'':+to(SCAL.wacc1).toFixed(dp); e.placeholder = 'computed '+to(d.wacc_build.wacc_calc).toFixed(dp); return; }
+    const v=d.inputs[k]; e.value = v==null?'':+to(v).toFixed(dp); });
+}
+function wireInputs(){
+  document.querySelectorAll('#steps input[data-u]').forEach(e=>{ e.oninput=()=>{
+    const x=parseFloat(e.value), k=e.dataset.k;
+    if(isNaN(x)){ if(e.value.trim()===''&&k==='wacc1'){ delete SCAL.wacc1; schedule(); } return; }
+    SCAL[k]=UNITS[e.dataset.u][1](x); schedule(); }; });
+}
+let R = null;
+async function recalc(){
+  const t=$('tk').value.trim().toUpperCase();
+  const res=await fetch('/dcf/calc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticker:t,engine:'fcff',overrides:overridesBody()})});
+  R=await res.json(); renderAll();
+}
+// take the server's view of a saved/pasted override set into the page state
+function absorb(o){
+  const {notes, traj, ...rest}=o||{}; NOTES=notes||NOTES;
+  if(traj) TRO={...TRO,...Object.fromEntries(Object.entries(traj).filter(([k,v])=>TRAJ.includes(k)&&Array.isArray(v)&&v.length===10))};   // pasted curves replace only the drivers they name
+  Object.entries(rest).forEach(([k,v])=>{ if(SCAL_KEYS.includes(k)) SCAL[k]=v; else EXTRA[k]=v; });
+  if(rest.wacc!=null){ SCAL.wacc1=rest.wacc; delete EXTRA.wacc; }
+}
+function renderFallbackWarning(){
+  const f=((R&&R.fallbacks)||[]).filter(k=>!(k==='beta'&&SCAL.beta!=null)&&!(k==='risk_free'&&SCAL.rf!=null)&&!(k==='price'&&SCAL.price!=null)), lab={beta:'beta (set to 1.0)', risk_free:'risk-free rate (set to 4.5%)', price:'share price'};
+  $('s5warn').innerHTML=f.length?`<div class="flag">The data feed returned no ${f.map(k=>lab[k]||k).join(' / ')} today, so a placeholder is used. Enter your own value above before trusting the result.</div>`:'';
+}
+function renderAll(){
+  const v=R;
+  if(!v||v.error){ const msg=(v&&v.error)||'No result'; $('chip').innerHTML=`<span class="text-danger">${msg}</span>`;
+    ['s3sum','termout','s5out','s6sum','s7out','s8out','sens','scen'].forEach(k=>$(k)&&($(k).innerHTML='')); $('s8res').innerHTML=`<span class="text-danger">${msg}</span>`; return; }
+  D=v; fillInputs(v); renderFallbackWarning();
+  const nc=E.cols.length, idx=[...Array(nc).keys()].slice(Math.max(0,nc-7));   // reported FCF, last years
+  const rw=(k,lab,f)=>`<tr><td>${lab}</td>`+idx.map(i=>{const x=col(k)[i]; return `<td class="${x!=null&&x<0?'text-danger':''}">${x==null?'—':f(x)}</td>`;}).join('')+'</tr>';
+  $('s2tbl').innerHTML='<tr><th></th>'+idx.map(i=>`<th>${E.cols[i]}</th>`).join('')+'</tr>'+rw('ocf','Operating cash flow ($M)',nf0)+rw('capex','+ Capex ($M)',nf0)+rw('fcf','= Free cash flow ($M)',nf0)+rw('revenue','Revenue ($M)',nf0)+rw('fcf_m','FCF margin = FCF ÷ Revenue',x=>nf(x*100,1)+'%');
+  drawReverse(v); drawHistory(v); drawPresets(v); drawDrivers(v); drawEffective(); drawForecast(v);
+  const rows=v.rows, n=rows.length, f0=rows[0], fN=rows[n-1], w=v.wacc_build, t=v.terminal, gap=v.gap, I=v.inputs;
+  // step 3
+  $('s3sum').innerHTML=`Revenue: <span class="res">$${M0(I.rev0)}M</span> today → year 5 <span class="res">$${M0(rows[4].revenue)}M</span> → year 10 <span class="res">$${M0(fN.revenue)}M</span><br>`+
+    `FCFF: $${M0(f0.fcff)}M in year 1 → <span class="res">$${M0(fN.fcff)}M</span> in year 10 (${P1(f0.fcff_margin)} → ${P1(fN.fcff_margin)} of revenue)`;
+  // step 4
+  const rev11=fN.revenue*(1+I.g_term);
+  $('termout').innerHTML=`Revenue(11) = ${M0(fN.revenue)} × (1 + ${P2(I.g_term)}) = <span class="res">$${M0(rev11)}M</span><br>`+
+    `NOPAT(11) = Revenue(11) × ${P1(fN.op_margin)} × (1 − ${P1(fN.tax_rate)}) = <span class="res">$${M0(t.nopat_next)}M</span><br>`+
+    `FCFF(11) = NOPAT(11) − net reinvestment = <span class="res">$${M0(t.fcff_next)}M</span> &nbsp;(reinvestment is ${t.terminal_reinvestment_rate==null?'–':P1(t.terminal_reinvestment_rate)} of NOPAT)<br>`+
+    `Growth in year 10: ${P1(fN.growth)} &nbsp;vs&nbsp; terminal growth ${P2(I.g_term)}`+
+    (t.implied_terminal_roic!=null?`<br>That reinvestment implies a return on new capital of <span class="res">${P1(t.implied_terminal_roic)}</span> for ever`:'')+
+    (fN.growth-I.g_term>0.03?`<div class="flag mt-2">Growth drops from ${P1(fN.growth)} to ${P2(I.g_term)} after year 10: a cliff. Consider lower year-10 growth or a higher terminal rate.</div>`:'');
+  // step 5
+  $('s5out').innerHTML=`Cost of equity = ${P2(I.rf)} + ${nf(I.beta,2)} × ${P2(I.erp)} = <span class="res">${P2(w.ke)}</span><br>
+  After-tax cost of debt = ${P2(I.kd)} × (1 − ${P1(I.tax)}) = <span class="res">${P2(w.kd_after_tax)}</span><br>
+  Market cap = $${nf(I.price,2)} × ${nf(I.shares/1e6,0)}M shares = <span class="res">$${M0(w.equity_mv)}M</span><br>
+  Debt weight = ${M0(I.debt)} ÷ (${M0(I.debt)} + ${M0(w.equity_mv)}) = <span class="res">${P1(w.wd)}</span> &nbsp; Equity weight = <span class="res">${P1(w.we)}</span><br>
+  WACC = ${P1(w.we)} × ${P2(w.ke)} + ${P1(w.wd)} × ${P2(w.kd_after_tax)} = <span class="res">${P2(w.wacc)}</span>${SCAL.wacc1!=null?' &nbsp;(your override)':''}`;
+  // step 6
+  $('chip').innerHTML=`Fair value <b>${D2(v.fair_value)}</b> vs price ${D2(I.price)} · <span class="${gap<0?'over':'under'}">${Math.abs(gap*100).toFixed(0)}% ${gap<0?'below':'above'} market</span>`;
+  $('s6sum').innerHTML=`Year 1: FCFF $${M0(f0.fcff)}M × factor ${nf(f0.df,4)} = $${M0(f0.pv)}M &nbsp;…&nbsp; Year ${n}: FCFF $${M0(fN.fcff)}M × factor ${nf(fN.df,4)} = $${M0(fN.pv)}M<br>Sum of the ${n} present values = <span class="res">$${M0(t.pv_sum)}M</span> (at WACC ${P2(w.wacc)})`;
+  T('s6tbl',['Year','FCFF ($M)','Discount factor','PV ($M)'],rows.map(x=>row(['Y'+x.year,M0(x.fcff),nf(x.df,4),`<b>${M0(x.pv)}</b>`])));
+  $('s7out').innerHTML=`Terminal value = ${M0(t.fcff_next)} ÷ (${P2(w.wacc)} − ${P2(I.g_term)}) = <span class="res">$${M0(t.tv)}M</span> &nbsp;(= ${v.tv_multiple==null?'–':nf(v.tv_multiple,1)}× year-${n} FCFF)<br>PV of terminal value = ${M0(t.tv)} × ${nf(fN.df,4)} = <span class="res">$${M0(t.tv_pv)}M</span><br>Terminal value share of EV: <span class="res">${P1(v.tv_share)}</span><div class="bar mt-1" style="max-width:340px"><div style="width:${Math.min(v.tv_share*100,100)}%"></div></div>`;
+  const pf=I.p_fail||0;
+  $('s8out').innerHTML=`Sum of PVs of ${n} forecast years = $${M0(t.pv_sum)}M<br>+ PV of terminal value = $${M0(t.tv_pv)}M<br><b>Enterprise value = $${M0(t.ev)}M</b><br>+ Cash &amp; short-term investments = $${M0(I.cash)}M<br>− Total debt = $${M0(I.debt)}M<br><b>Equity value = $${M0(t.equity)}M</b><br>÷ Shares = ${nf(I.shares/1e6,0)}M<br>Going-concern value per share = ${D2(v.dcf_per_share)}`+
+    (pf?`<br>× (1 − ${P1(pf)}) + liquidation ${D2(I.liq_ps||0)} × ${P1(pf)} = <b>${D2(v.fair_value)}</b>`:'');
+  $('s8res').innerHTML=`<span class="big">${D2(v.fair_value)}</span> per share &nbsp;vs&nbsp; market price ${D2(I.price)} → <span class="${gap<0?'text-danger':'text-success'}">${Math.abs(gap*100).toFixed(0)}% ${gap<0?'below':'above'} the market price</span><div class="small fw-normal mt-1">A gap like this says the <i>assumptions</i> differ from what the market is pricing; it is not proof the stock is mis-priced.</div>`;
+  $('s7flags').innerHTML=(v.flags||[]).map(x=>`<div class="flag">${x}</div>`).join('');
+  // step 7
+  const sn=v.sensitivity, cell=(x,i,j)=>`<td class="${x==null?'':x>=I.price?'cell-hi':'cell-lo'} ${i==2&&j==2?'cell-base':''}">${x==null?'—':D2(x)}</td>`;
+  $('sens').innerHTML='<tr><th>WACC \\ g</th>'+sn.g.map(g=>`<th>${P1(g)}</th>`).join('')+'</tr>'+sn.grid.map((rw,i)=>`<tr><td>${P2(sn.wacc[i])}</td>`+rw.map((x,j)=>cell(x,i,j)).join('')+'</tr>').join('');
+  $('sensNote').textContent=`Blue: at or above today's price (${D2(I.price)}). Red: below. Outlined: your base case (${D2(v.fair_value)}).`+(SCAL.wacc1!=null?' The middle row is your WACC override.':'');
+  T('scen',['','Growth, year 1','EBIT margin, year 10','WACC','g','Value / share'],['Bear','Base','Bull'].map(k=>[k,v.scenarios[k]]).map(([k,x])=>row([k,P1(x.g1),P1(x.margin),P2(x.wacc),P2(x.g_term),`<b>${D2(x.value)}</b>`])));
+}
+
+// ── paste-inputs dialog: JSON from the company-narrative prompt -> this page's inputs and curves
+const IMP_LABEL={rev0:'starting revenue','traj.growth':'growth curve','traj.op_margin':'EBIT margin curve','traj.tax':'tax curve','traj.da_pct':'D&A curve','traj.capex_pct':'CapEx curve','traj.nwc_pct':'ΔNWC curve',g_term:'terminal growth',rf:'risk-free',kd:'cost of debt',stage:'stage',p_fail:'failure probability',liq_ps:'liquidation value'};
+function importSummary(r){ const lab=k=>IMP_LABEL[k]||k;
+  return `<span class="text-success">Applied ${r.applied.length} of ${r.total} inputs.</span>`+(r.missing.length?` <span class="text-secondary">Defaults used for: ${r.missing.map(lab).join(', ')}.</span>`:' <span class="text-secondary">Nothing left on defaults.</span>'); }
+async function doImport(){
+  const m=$('impMsg');
+  const r=await (await fetch('/dcf/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:$('impText').value})})).json();
+  if(r.error){ m.innerHTML=`<span class="text-danger">${r.error}</span>`; return; }
+  const cur=$('tk').value.trim().toUpperCase();
+  if(r.ticker && r.ticker!==cur){ $('tk').value=r.ticker; $('status').textContent='Loading from SEC EDGAR…'; await load(); }
+  const {notes,...o}=r.overrides; if(o.wacc1!=null) SCAL.wacc1=o.wacc1;
+  absorb(o); PASTED_STAGE=r.stage||''; const used=Object.keys(o);
+  await recalc(); setResearch(r, true);
+  m.innerHTML=importSummary(r)+(r.warnings.length?`<br><span class="text-secondary">${r.warnings.join(' ')}</span>`:'');
+  if(used.length) bootstrap.Modal.getOrCreateInstance($('imp')).hide();
+}
+
+// ── tutorial layout: sticky navigator, "How this works" modals (explanations moved out of the page), Previous / Next
+let TUT = false;
+function stepCards(){ return [...document.querySelectorAll('#steps .step')]; }
+function stepTitle(card){ const h=card.querySelector('h5').cloneNode(true); h.querySelectorAll('.num,.helpbtn').forEach(e=>e.remove()); return h.textContent.trim(); }
+function goTo(id){ if(id==='top'){ window.scrollTo({top:0,behavior:'smooth'}); return; } const el=$(id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
+function showHelp(id){
+  const holder=document.querySelector(`#helpStore [data-help="${id}"]`); if(!holder) return;
+  const clone=holder.cloneNode(true); clone.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));  // the live copies stay in the store, so their text keeps updating
+  $('helpTitle').textContent=stepTitle($(id)); $('helpBody').innerHTML=''; $('helpBody').appendChild(clone);
+  bootstrap.Modal.getOrCreateInstance($('helpModal')).show();
+}
+function initTutorial(){
+  if(TUT) return; TUT=true;
+  const cards=stepCards(), store=$('helpStore');
+  cards.forEach((card,k)=>{
+    // explanation paragraphs (.why) go to the help store; method boxes contribute one titled paragraph each
+    const holder=document.createElement('div'); holder.dataset.help=card.id;
+    card.querySelectorAll(':scope > .why').forEach(w=>holder.appendChild(w));
+    card.querySelectorAll('.meth').forEach(m=>{ const w=m.querySelector('.why'); if(!w) return; const h=m.querySelector('.mh');
+      const t=document.createElement('div'); t.className='helptitle'; t.textContent=(h?h.textContent:'').replace('base case','').trim(); holder.appendChild(t); holder.appendChild(w); });
+    store.appendChild(holder);
+    const b=document.createElement('button'); b.className='btn btn-outline-primary btn-sm helpbtn'; b.textContent='How this works'; b.onclick=()=>showHelp(card.id);
+    card.querySelector('h5').appendChild(b);
+    // Previous / Next
+    const prev = k==0 ? ['snapCard','← Data tables'] : [cards[k-1].id,'← Previous: '+cards[k-1].dataset.short];
+    const next = k==cards.length-1 ? ['top','↑ Back to top'] : [cards[k+1].id,'Next: '+cards[k+1].dataset.short+' →'];
+    const f=document.createElement('div'); f.className='stepfoot';
+    f.innerHTML=`<button class="btn btn-outline-secondary btn-sm" onclick="goTo('${prev[0]}')">${prev[1]}</button><button class="btn btn-primary btn-sm" onclick="goTo('${next[0]}')">${next[1]}</button>`;
+    card.appendChild(f);
+  });
+  // navigator
+  $('stepnavIn').innerHTML=`<a class="pill" data-t="snapCard" href="#snapCard">Data</a>`+cards.map((c,k)=>`<a class="pill" data-t="${c.id}" href="#${c.id}"><span class="n">${k+1}</span>${c.dataset.short}</a>`).join('')+`<span class="live" id="chip2"></span>`;
+  $('stepnavIn').querySelectorAll('.pill').forEach(a=>a.onclick=e=>{ e.preventDefault(); goTo(a.dataset.t); history.replaceState(null,'','#'+a.dataset.t); });
+  $('stepnav').style.display='block';
+  new MutationObserver(()=>{ $('chip2').innerHTML=$('chip').innerHTML; }).observe($('chip'),{childList:true,characterData:true,subtree:true}); $('chip2').innerHTML=$('chip').innerHTML;
+  const pills=[...$('stepnavIn').querySelectorAll('.pill')];
+  function onScroll(){
+    const ids=['snapCard',...cards.map(c=>c.id)]; let cur=0;
+    ids.forEach((id,k)=>{ const e=$(id); if(e && e.getBoundingClientRect().top <= Math.max(110, window.innerHeight*0.35)) cur=k; });
+    if(window.innerHeight+window.scrollY >= document.documentElement.scrollHeight-4) cur=ids.length-1;  // the last step can't reach the top of the page
+    pills.forEach((p,k)=>p.classList.toggle('active',k==cur));
+    $('stepbar').style.width=(cur/(ids.length-1)*100)+'%';
+    const a=pills[cur]; if(a){ const box=$('stepnavIn'); const l=a.offsetLeft-box.offsetLeft; if(l<box.scrollLeft||l+a.offsetWidth>box.scrollLeft+box.clientWidth-80) box.scrollLeft=Math.max(0,l-60); }
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); window.addEventListener('resize',onScroll); onScroll();
+  if(location.hash && $(location.hash.slice(1))) setTimeout(()=>goTo(location.hash.slice(1)),300);
+}
+async function copyNarrative(){
+  const t=$('tk').value.trim().toUpperCase(), b=$('nbtn'), old=b.textContent;
+  if(!t){ $('status').textContent='Enter a ticker first.'; return; }
+  const p=fetch('/skills/prompt?skill=company-narrative&ticker='+encodeURIComponent(t)).then(r=>r.text().then(x=>{ if(!r.ok) throw new Error(x); return x; }));
+  try { await navigator.clipboard.write([new ClipboardItem({'text/plain': p.then(x=>new Blob([x],{type:'text/plain'}))})]); }
+  catch(e){ try { const x=await p, ta=document.createElement('textarea'); ta.value=x; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); } catch(e2){ $('status').textContent='Could not build the prompt: '+e2.message; return; } }
+  b.textContent='Copied ✓ — paste into an LLM'; setTimeout(()=>b.textContent=old,2500);
+}
+let TUT_BUILT = false;
+async function load(){
+  const t=$('tk').value.trim().toUpperCase(); if(!t) return; buildNav();
+  $('status').textContent='Loading from SEC EDGAR…';
+  await Promise.all([loadSnap(t), loadEdgar(t)]);
+  if(E && !E.error){ SCAL={}; EXTRA={}; NOTES={}; TRO={}; PRESET=''; PASTED_STAGE='';
+    if(!TUT_BUILT){ wireInputs(); TUT_BUILT=true; }
+    $('steps').style.display='block'; initTutorial();
+    const res=await fetch('/dcf/calc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticker:t,engine:'fcff'})});   // no overrides: picks up inputs/<T>.json if saved
+    R=await res.json(); if(!R.error){ absorb(R.loaded_overrides); setResearchSaved(R.loaded_overrides, t); } renderAll(); }
+  $('status').textContent=E?`${E.name} · data through ${E.ends[E.ends.length-1]}`:'';
+}
+buildNav();
+if($('tk').value) load();
+</script>
+</body>
+</html>
