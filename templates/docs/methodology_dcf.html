@@ -155,22 +155,22 @@ Value per share = DCF value &times; (1 &minus; p) + L &times; p</div>
 <p>The mathematics of the model is the same for every company; what changes with the life-cycle stage are the assumptions, the projection variables and the risk adjustments. The page suggests a stage from simple rules on the SEC history (margin sign and trend, 3-year revenue growth, years of history, interest cover) and offers a preset curve set for each. The detector is a hint, not a verdict: override it when you know the business better.</p>
 <div style="overflow-x:auto"><table class="t">
   <tr><th>Life-cycle stage</th><th>1. Common attributes for the group</th><th>2. Valuation issues</th><th>3. Valuation solutions (variables and formulas)</th><th>4. Relative valuation (multiples and formulas)</th></tr>
-  <tr><td><b>Ch. 5: Young growth</b><br>(e.g., Evergreen Solar)</td>
+  <tr><td><b>Young growth</b><br>(e.g., Evergreen Solar)</td>
     <td>&bull; No historical performance data.<br>&bull; Small or zero revenues with operating losses.<br>&bull; High probability of failure.<br>&bull; Illiquid / low float.<br>&bull; Multiple claims on equity.</td>
     <td>&bull; <i>Intrinsic:</i> Negative cash flows; estimating future revenues, target margins and survival time is extremely difficult.<br>&bull; <i>Relative:</i> Current scaling variables are tiny or negative; book values are meaningless.</td>
     <td>&bull; <b>Revenue growth</b> (g<sub>rev</sub>): forecast via total market size and market share captured.<br>&bull; <b>Target margins</b> (EBIT / Sales): evolve over the forecast period (t = 1&hellip;n) to mature peer levels.<br>&bull; <b>Survival adjustment:</b><br><code>Value = DCF value &times; (1 &minus; probability of failure)</code></td>
     <td>&bull; Use forward revenues or earnings projected further down the life cycle (t = 5).<br>&bull; Adjust the forward multiple to reflect lower terminal growth.<br>&bull; Discount the forward value back for the time value of money and survival risk.</td></tr>
-  <tr><td><b>Ch. 6: Growth</b><br>(e.g., Under Armour)</td>
+  <tr><td><b>Growth</b><br>(e.g., Under Armour)</td>
     <td>&bull; Dynamic, fast-changing financials.<br>&bull; Size disconnect: market values vastly exceed book values.<br>&bull; Low debt relative to value.<br>&bull; Short, unstable market history.</td>
     <td>&bull; <i>Intrinsic:</i> Rapidly changing scale means past growth cannot continue; predicting how fast growth fades is hard.<br>&bull; <i>Relative:</i> High growth and risk make matching comparables complex.</td>
     <td>&bull; <b>Fundamental growth:</b><br><code>g = Reinvestment rate &times; ROC</code><br>where <code>Reinvestment rate = (Net CapEx + &Delta;WC) / After-tax EBIT</code><br>&bull; <b>FCFF projection:</b><br><code>FCFF<sub>t</sub> = EBIT<sub>t</sub> &times; (1 &minus; t) &minus; Reinvestment<sub>t</sub></code><br>&bull; <b>Terminal value:</b><br><code>TV<sub>n</sub> = FCFF<sub>n+1</sub> / (Cost of capital &minus; g<sub>stable</sub>)</code></td>
     <td>&bull; Use the <b>PEG ratio</b> (PE &divide; expected growth) to screen for relative value.<br>&bull; Run multiple regressions of multiples against growth, risk and payout to control for peer differences.</td></tr>
-  <tr><td><b>Ch. 7: Mature</b><br>(e.g., Coca-Cola, Hormel Foods)</td>
+  <tr><td><b>Mature</b><br>(e.g., Coca-Cola, Hormel Foods)</td>
     <td>&bull; Revenue growth converges with macro growth (2%&ndash;3%).<br>&bull; Established, stable margins.<br>&bull; High excess returns.<br>&bull; High debt capacity and cash build-up.</td>
     <td>&bull; <i>Intrinsic:</i> Complacency: relying on past operating data can undervalue firms with operating slack.<br>&bull; <i>Relative:</i> Too many choices of multiples; leverage changes skew equity multiples.</td>
     <td>&bull; <b>Operating restructuring:</b> optimise existing assets to improve EBIT and ROC.<br>&bull; <b>Financial restructuring:</b> raise the debt ratio to optimal industry levels to lower the cost of capital (WACC).<br>&bull; <b>Terminal reinvestment:</b><br><code>Reinvestment rate = g<sub>stable</sub> / ROC</code></td>
     <td>&bull; Rich availability of multiples (PE, P/BV, EV/EBITDA, EV/Sales).<br>&bull; Enterprise multiples (EV/EBITDA) are preferred over equity multiples when capital structures and debt ratios fluctuate.</td></tr>
-  <tr><td><b>Ch. 8: Declining</b><br>(e.g., General Motors, Sears)</td>
+  <tr><td><b>Declining</b><br>(e.g., General Motors, Sears)</td>
     <td>&bull; Stagnant or declining revenues.<br>&bull; Shrinking or negative margins and loss of pricing power.<br>&bull; Frequent asset divestitures.<br>&bull; High default risk and leverage.</td>
     <td>&bull; <i>Intrinsic:</i> Depressed historical data, negative returns and a high probability of default.<br>&bull; <i>Relative:</i> Earnings and book values break down; distressed firms trade at low multiples because of high bankruptcy risk.</td>
     <td>&bull; <b>Going concern vs. liquidation:</b><br><code>Firm value = Going-concern value &times; (1 &minus; P<sub>distress</sub>) + Liquidation value &times; P<sub>distress</sub></code><br>where P<sub>distress</sub> comes from cumulative bond-rating default tables.<br>&bull; <b>Liquidation value:</b> estimated from an asset breakup or book-value recovery rates.</td>
