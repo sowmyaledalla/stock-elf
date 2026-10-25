@@ -13,8 +13,8 @@ Stock Elf is a small web app that helps you research a US stock on your own. Typ
 | **Evaluate** `/evaluate?ticker=MSFT` | Company profile, key metrics, TradingView chart, Finviz fundamentals, quick links, and a copy-to-clipboard "Company Narrative" prompt for any LLM. |
 | **DCF** `/dcf2?ticker=MSFT` | Textbook FCFF discounted cash flow built from SEC filings, with editable ten-year driver curves, life-cycle presets, Bear/Base/Bull scenarios, a sensitivity grid and a reverse DCF. A compact version lives at `/dcf`. |
 | **Technicals** `/technicals?ticker=MSFT` | Moving averages, RSI, MACD, Bollinger Bands, ATR, volume, support/resistance and Fibonacci levels, plus a transparent seven-signal scorecard. |
-| **How to use** `/how-to-use` | A walkthrough of every page and the Company Narrative workflow. |
-| **Methodology** `/methodology` | The formulas, defaults, worked examples and limits behind the DCF and the technical indicators. |
+| **How to use** `/how-to-use` | A walkthrough of every page and the Company Narrative workflow. Also on GitHub: [docs/how-to-use.md](docs/how-to-use.md). |
+| **Methodology** `/methodology` | The formulas, defaults, worked examples and limits behind the DCF and the technical indicators. Also on GitHub: [DCF](docs/methodology-dcf.md), [Technicals](docs/methodology-technicals.md). |
 
 ## Quick start
 
@@ -38,7 +38,7 @@ export SEC_USER_AGENT="StockElf you@example.com"
 
 ## How the DCF works, in brief
 
-Free cash flow to the firm is `EBIT x (1 - tax) + D&A - CapEx - change in NWC`, forecast for ten years from six editable drivers (revenue growth, operating margin, tax, D&A, CapEx, working capital). It is discounted at a CAPM-based WACC and a Gordon-growth terminal value is added. Defaults are derived from SEC XBRL filings. See the in-app [methodology page](http://127.0.0.1:8000/methodology/dcf) or [`templates/docs/methodology_dcf.html`](templates/docs/methodology_dcf.html) for the formulas and a worked example.
+Free cash flow to the firm is `EBIT x (1 - tax) + D&A - CapEx - change in NWC`, forecast for ten years from six editable drivers (revenue growth, operating margin, tax, D&A, CapEx, working capital). It is discounted at a CAPM-based WACC and a Gordon-growth terminal value is added. Defaults are derived from SEC XBRL filings. See the [DCF methodology](docs/methodology-dcf.md) (also served in the app at `/methodology/dcf`) for the formulas, a worked example and the life-cycle stages.
 
 ## Company Narrative workflow
 
@@ -61,9 +61,10 @@ Fetched data is cached under `data/cache/` (git-ignored). Delete the folder to f
 app.py                Flask routes
 functions/            Technicals, Finviz and EDGAR helpers, prompt builder
 valuation/            DCF engine (fcff.py), EDGAR table, WACC, importer
-templates/            Pages; templates/docs/ holds How to use and Methodology
+templates/            Page templates (docs/page.html renders the Markdown docs)
 static/               Styles, scripts, logo and images
 prompts/              Company Narrative prompt
+docs/                 How to use and Methodology (Markdown, shown on GitHub and in the app), images
 tests/                Unit and smoke tests
 ```
 

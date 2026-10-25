@@ -19,26 +19,44 @@ def home():
     return render_template('home.html')
 
 
-# ── Documentation pages ──────────────────────────────────────────────────────
+# ── Documentation pages (rendered from docs/*.md, the same files GitHub shows) ──
+
+import re
+import markdown
+
+DOCS_DIR = Path(__file__).resolve().parent / 'docs'
+DOC_PAGES = {'how-to-use': ('how', '/how-to-use'), 'methodology': ('method', '/methodology'),
+             'methodology-dcf': ('method', '/methodology/dcf'), 'methodology-technicals': ('method', '/methodology/technicals')}
+
+
+def render_doc(name):
+    page, _ = DOC_PAGES[name]
+    text = (DOCS_DIR / f'{name}.md').read_text(encoding='utf-8')
+    html = markdown.markdown(text, extensions=['tables', 'fenced_code', 'toc'])
+    for other, (_, route) in DOC_PAGES.items():  # links between the .md files become app routes
+        html = html.replace(f'href="{other}.md"', f'href="{route}"')
+    title = re.search(r'^# (.+)$', text, re.M).group(1)
+    return render_template('docs/page.html', content=html, title=title, brand_page=page)
+
 
 @app.route("/how-to-use")
 def how_to_use():
-    return render_template('docs/how_to_use.html')
+    return render_doc('how-to-use')
 
 
 @app.route("/methodology")
 def methodology():
-    return render_template('docs/methodology_index.html')
+    return render_doc('methodology')
 
 
 @app.route("/methodology/dcf")
 def methodology_dcf():
-    return render_template('docs/methodology_dcf.html')
+    return render_doc('methodology-dcf')
 
 
 @app.route("/methodology/technicals")
 def methodology_technicals():
-    return render_template('docs/methodology_technicals.html')
+    return render_doc('methodology-technicals')
 
 
 # ── Evaluate ─────────────────────────────────────────────────────────────────
