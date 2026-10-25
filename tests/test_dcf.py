@@ -40,3 +40,16 @@ def test_reverse_dcf_recovers_price():
     solves = {s["key"]: s["implied"] for s in fcff.reverse_dcf(i, tr)["solves"]}
     assert solves["growth"] == pytest.approx(0.193, abs=0.001)
     assert solves["wacc"] == pytest.approx(0.0658, abs=0.001)
+
+
+def test_terminal_reinvestment_check(result):
+    """Section 4 of the methodology page: default terminal reinvestment is only ~3%, implying a very high return on new capital."""
+    assert result["terminal_reinvestment_rate"] == pytest.approx(0.0313, abs=0.001)
+    assert result["implied_terminal_roic"] == pytest.approx(0.80, abs=0.01)
+
+
+def test_stable_roc_adjustment(result):
+    """With a 10% stable ROC the reinvestment rate is g / ROC = 25% and the example value falls to about $31.93."""
+    fcff11 = result["nopat_next"] * (1 - 0.025 / 0.10)
+    tv_pv = fcff11 / (0.09 - 0.025) / 1.09 ** 10
+    assert (result["pv_sum"] + tv_pv + 100) / 100 == pytest.approx(31.93, abs=0.01)

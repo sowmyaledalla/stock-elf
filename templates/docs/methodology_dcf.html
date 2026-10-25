@@ -10,6 +10,7 @@
   <li><a href="#idea">The idea</a></li>
   <li><a href="#fcff">Free cash flow to the firm</a></li>
   <li><a href="#drivers">The six drivers and their defaults</a></li>
+  <li><a href="#growth">Growth, reinvestment and return on capital</a></li>
   <li><a href="#wacc">Discount rate (WACC)</a></li>
   <li><a href="#tv">Terminal value</a></li>
   <li><a href="#bridge">From enterprise value to value per share</a></li>
@@ -23,6 +24,13 @@
 <h2 id="idea">1. The idea</h2>
 <p>A dollar received in the future is worth less than a dollar today, so each forecast cash flow is divided by (1 + r) raised to the number of years. Add up the discounted cash flows for the forecast years and for all the years after (the terminal value), and you have the value of the operating business. Adjust for cash and debt to get the value belonging to shareholders.</p>
 <div class="formula">Enterprise value = &Sigma; FCFF<sub>t</sub> / (1 + WACC)<sup>t</sup>  (t = 1..10)  +  TV / (1 + WACC)<sup>10</sup></div>
+<p>Valuation is a systematic process rooted in fundamentals, not a black box. Whatever the company or its stage, intrinsic value rests on three pillars:</p>
+<ol>
+  <li><b>Cash flows</b> from assets already in place and from future growth investments.</li>
+  <li><b>Growth</b> in those cash flows, which depends on how much is reinvested and how well (the return earned on it).</li>
+  <li><b>Risk</b>, which enters through the discount rate and through the probability that the company fails or becomes distressed.</li>
+</ol>
+<p>There are two equivalent routes, depending on how debt is treated. <b>Enterprise valuation (FCFF)</b> discounts pre-debt operating cash flows at the cost of capital, then adds cash and subtracts debt to reach equity value. <b>Equity valuation (FCFE)</b> discounts post-debt cash flows to shareholders at the cost of equity. Stock Elf uses the FCFF route, because it keeps the operating forecast separate from financing choices.</p>
 
 <h2 id="fcff">2. Free cash flow to the firm</h2>
 <p>FCFF is the cash left from operations after taxes and after the investment needed to sustain growth, before paying any lenders or shareholders.</p>
@@ -32,6 +40,9 @@ EBIT   = revenue &times; operating margin
 D&amp;A    = revenue &times; D&amp;A %
 CapEx  = revenue &times; CapEx %
 &Delta;NWC  = NWC % &times; (revenue<sub>t</sub> &minus; revenue<sub>t-1</sub>)</div>
+<p>Equivalently, FCFF is after-tax operating income minus reinvestment:</p>
+<div class="formula">FCFF = EBIT &times; (1 &minus; tax rate) &minus; Reinvestment
+Reinvestment = Net CapEx + &Delta;NWC,   Net CapEx = CapEx &minus; D&amp;A</div>
 <p>The first term, EBIT &times; (1 &minus; tax), is after-tax operating profit (NOPAT). D&amp;A is added back because it is a non-cash charge. CapEx and the change in net working capital (NWC) are the cash the business must reinvest.</p>
 
 <h2 id="drivers">3. The six drivers and their defaults</h2>
@@ -47,30 +58,49 @@ CapEx  = revenue &times; CapEx %
 </table>
 <p>Other defaults: terminal growth 2.5%; equity risk premium 4.23% (Damodaran's published figure; edit it); risk-free rate from the 10-year Treasury yield; beta from Yahoo Finance; cost of debt = risk-free rate + 1%.</p>
 
-<h2 id="wacc">4. Discount rate (WACC)</h2>
+<h2 id="growth">4. Growth, reinvestment and return on capital</h2>
+<p>Growth is not free. Operating income can only grow if the company reinvests, and how fast it grows depends on how much it reinvests and on the return that investment earns. This is the fundamental growth equation:</p>
+<div class="formula"><b>Expected growth in operating income = Reinvestment rate &times; Return on capital (ROC)</b>
+
+Reinvestment rate = (Net CapEx + &Delta;NWC) / after-tax operating income
+After-tax ROC     = EBIT &times; (1 &minus; tax) / (book debt + book equity &minus; cash)</div>
+<p>It works as a consistency check on any set of curves. If you forecast fast growth while the drivers show very little reinvestment, the forecast implicitly assumes an unrealistically high return on capital. The page reports the implied terminal reinvestment rate and return on capital for this reason.</p>
+<div class="example"><h4>Example</h4>
+<p>A company reinvests 40% of its after-tax operating income and earns 15% on new capital. Its operating income can grow 0.40 &times; 15% = <b>6%</b> a year. To grow at 10% with the same 15% return, it would have to reinvest 67%.</p></div>
+<p>The same logic fixes the terminal year. In a going-concern perpetuity the stable reinvestment rate must be:</p>
+<div class="formula">Stable reinvestment rate = g<sub>stable</sub> / stable ROC
+TV = NOPAT<sub>n+1</sub> &times; (1 &minus; stable reinvestment rate) / (cost of capital<sub>stable</sub> &minus; g<sub>stable</sub>)</div>
+<div class="example"><h4>Why this matters: a check on the worked example below</h4>
+<p>In the made-up company of section 8, the default curves leave a terminal reinvestment rate of only <b>3.1%</b> of NOPAT, which implies a return of about <b>80%</b> on new capital. That is generous. If instead we assume the company earns a stable ROC of 10%, then reinvestment must be 2.5% / 10% = 25% of NOPAT. FCFF<sub>11</sub> falls from 329.9 to 340.5 &times; 0.75 = 255.4, the terminal value from 5,075 to 3,929, and the value from $36.77 to about <b>$31.93</b> per share. Always read the implied terminal ROC next to the value.</p></div>
+<p>For young companies, reinvestment is usually modelled through a <b>sales-to-capital ratio</b>: each dollar of invested capital supports some dollars of revenue, so reinvestment = &Delta;revenue / (sales-to-capital). Stock Elf takes CapEx and &Delta;NWC as percentages of revenue instead; to use a sales-to-capital view, convert it to those percentages when you edit the curves.</p>
+
+<h2 id="wacc">5. Discount rate (WACC)</h2>
 <p>The weighted average cost of capital blends what equity holders and lenders each require, using market-value weights.</p>
 <div class="formula">Cost of equity (CAPM):  k<sub>e</sub> = r<sub>f</sub> + &beta; &times; ERP
 After-tax cost of debt: k<sub>d</sub> &times; (1 &minus; tax)
 Weights:                E = price &times; shares,   D = debt,   w<sub>d</sub> = D / (D + E)
 
 <b>WACC</b> = (1 &minus; w<sub>d</sub>) &times; k<sub>e</sub> + w<sub>d</sub> &times; k<sub>d</sub> &times; (1 &minus; tax)</div>
-<p>One constant WACC discounts all ten years and the terminal value. You can override it on the page. WACC must exceed terminal growth, otherwise the terminal value is undefined and the page shows an error.</p>
+<p>One constant WACC discounts all ten years and the terminal value. The general framework lets the discount rate change over time, for example stepping beta and WACC down toward a mature-company level as a growth company's risk normalises; Stock Elf keeps one rate for simplicity, so use the WACC override (and the sensitivity grid) to explore that effect. You can override it on the page. WACC must exceed terminal growth, otherwise the terminal value is undefined and the page shows an error.</p>
 
-<h2 id="tv">5. Terminal value</h2>
+<h2 id="tv">6. Terminal value</h2>
 <p>After year 10 the model assumes the company grows forever at a stable rate g (default 2.5%, below the economy's long-run growth). The year-11 cash flow is built from the same drivers as year 10, with revenue growing at g, and capitalised with the Gordon growth formula.</p>
 <div class="formula"><b>TV</b> = FCFF<sub>11</sub> / (WACC &minus; g)
 PV of TV = TV / (1 + WACC)<sup>10</sup></div>
 <p>The page reports the terminal value's share of enterprise value and the implied terminal reinvestment rate and return on invested capital, as consistency checks. Stable growth needs reinvestment: a firm cannot grow at g while reinvesting nothing, because g = reinvestment rate &times; return on capital.</p>
 
-<h2 id="bridge">6. From enterprise value to value per share</h2>
+<h2 id="bridge">7. From enterprise value to value per share</h2>
 <div class="formula">Equity value = Enterprise value + cash &minus; debt
 Value per share = Equity value / diluted shares
 
 If you set a probability of failure p and a liquidation value L per share:
 Value per share = DCF value &times; (1 &minus; p) + L &times; p</div>
 <p>The gap shown on the page compares this value with the market price.</p>
+<p><b>Distress.</b> For declining or highly levered firms a conventional DCF overstates value, because it assumes the business survives. Weight a going-concern scenario against a liquidation scenario:</p>
+<div class="formula">Firm value = Going-concern DCF &times; (1 &minus; P<sub>distress</sub>) + Liquidation value &times; P<sub>distress</sub></div>
+<p>P<sub>distress</sub> can be taken from cumulative default-probability tables by bond rating. Use the page's probability-of-failure and liquidation-value inputs for this.</p>
 
-<h2 id="example">7. Worked example</h2>
+<h2 id="example">8. Worked example</h2>
 <p>A made-up company, so the arithmetic is easy to follow. It has revenue of $1,000M, a 20% operating margin, 21% tax, D&amp;A of 4% and CapEx of 5% of revenue, and working capital of 10% of any revenue increase. It has no debt, $100M of cash and 100M shares. Growth is 10% for years 1&ndash;5, fading to 2.5% by year 10.</p>
 <div class="example">
   <h4>Step 1: WACC</h4>
@@ -97,7 +127,7 @@ Value per share = DCF value &times; (1 &minus; p) + L &times; p</div>
 </div>
 <p>You can reproduce this example in code: it is the output of <code>valuation.fcff.run</code> with the inputs above.</p>
 
-<h2 id="scen">8. Scenarios and sensitivity</h2>
+<h2 id="scen">9. Scenarios and sensitivity</h2>
 <p><b>Scenarios.</b> Bear, Base and Bull re-run the model with shifted assumptions.</p>
 <table class="t">
   <tr><th></th><th>Growth (years 1&ndash;5, tapering to year 10)</th><th>Operating margin (every year)</th><th>WACC</th></tr>
@@ -107,7 +137,7 @@ Value per share = DCF value &times; (1 &minus; p) + L &times; p</div>
 </table>
 <p><b>Sensitivity grid.</b> Value per share across WACC (&plusmn;2 pts in 1-pt steps) and terminal growth (&plusmn;1 pt in 0.5-pt steps). Cells where WACC does not exceed terminal growth are left blank. The spread of the grid is a quick measure of how fragile the valuation is.</p>
 
-<h2 id="reverse">9. Reverse DCF</h2>
+<h2 id="reverse">10. Reverse DCF</h2>
 <p>Instead of asking "what is it worth?", ask "what does the price assume?". The reverse DCF takes the market price as fixed and solves, one lever at a time with everything else unchanged, for the value that makes the model equal to the price:</p>
 <ul>
   <li><b>Revenue growth:</b> the year 1&ndash;5 growth rate (the path shifts, tapering to terminal growth).</li>
@@ -121,23 +151,44 @@ Value per share = DCF value &times; (1 &minus; p) + L &times; p</div>
   <p>The made-up company above is worth $36.77 per share in the model. Suppose it trades at $60. Solving one lever at a time, the price implies: year 1&ndash;5 growth of <b>19.3%</b> instead of 10%; or an operating margin of <b>32.2%</b> instead of 20%; or terminal growth of <b>5.8%</b> instead of 2.5%; or a discount rate of <b>6.6%</b> instead of 9%. Each is a way of asking the same question: is that believable for this business?</p>
 </div>
 
-<h2 id="stage">10. Life-cycle presets</h2>
-<p>Following Damodaran's life-cycle framework, a company's stage changes how its cash flows should look. The page suggests a stage from simple rules on the SEC history (margin sign and trend, 3-year revenue growth, years of history, interest cover) and offers a preset for each.</p>
+<h2 id="stage">11. Life-cycle stages</h2>
+<p>The mathematics of the model is the same for every company; what changes with the life-cycle stage are the assumptions, the projection variables and the risk adjustments. The page suggests a stage from simple rules on the SEC history (margin sign and trend, 3-year revenue growth, years of history, interest cover) and offers a preset curve set for each. The detector is a hint, not a verdict: override it when you know the business better.</p>
+<table class="t">
+  <tr><th>Stage</th><th>Common attributes</th><th>Valuation issues</th><th>Solutions and variables</th><th>Relative-valuation focus</th></tr>
+  <tr><td><b>Young growth</b></td><td>No history; negative or zero operating earnings; high risk of failure; low liquidity.</td><td>Negative cash flows; market share, margins and survival are hard to forecast. Multiples have tiny or negative denominators and book values are meaningless.</td><td>Forecast revenue from total market size and the share captured; converge margins to mature peers over <code>margin_years</code>; adjust value for the probability of survival.</td><td>Use forward revenues or earnings projected further along the life cycle; adjust for lower terminal growth; discount for time and failure risk.</td></tr>
+  <tr><td><b>Growth</b></td><td>Fast-changing financials; market value far above book; low debt; short market history.</td><td>Past growth cannot continue; high growth plus high risk makes peers hard to match.</td><td>Growth = reinvestment rate &times; ROC; use industry sales-to-capital ratios for capital needs; step discount rates down as risk normalises.</td><td>PEG ratio (P/E &divide; expected growth) to screen; regressions against growth and risk to control for differences.</td></tr>
+  <tr><td><b>Mature</b></td><td>Growth near GDP (2&ndash;3%); established margins; high excess returns; high debt capacity.</td><td>Complacency: relying on past operating data can undervalue a firm with operating or financial slack. Leverage changes skew equity multiples.</td><td>Look for operating restructuring (cost cuts, productivity) and financial restructuring (optimal debt ratio); keep stable growth and reinvestment.</td><td>Many comparable multiples; prefer enterprise multiples such as EV/EBITDA over equity multiples when capital structures differ.</td></tr>
+  <tr><td><b>Declining</b></td><td>Stagnant or shrinking revenue; falling margins and pricing power; asset sales; high leverage and default risk.</td><td>Depressed history, negative returns and a real chance of default; earnings and book values break down.</td><td>Judge whether the decline is reversible; separate going-concern value from default probability using bond-rating default tables; use liquidation value where operations are not viable.</td><td>Be very cautious with P/E and P/B; adjust enterprise multiples for distress to avoid value traps.</td></tr>
+</table>
+
+<h3>How each driver typically behaves by stage</h3>
+<table class="t">
+  <tr><th>Driver</th><th>Young growth</th><th>Growth</th><th>Mature</th><th>Declining</th></tr>
+  <tr><td>EBIT (revenue &times; margin)</td><td>Starts deeply negative and converges upward to mature peer margins over <code>margin_years</code>.</td><td>Positive and expanding; plateaus as competition and scale limits arrive.</td><td>Steady; check for slack where cost cuts would raise EBIT.</td><td>Depressed or contracting as pricing power fades; may recover if a turnaround works.</td></tr>
+  <tr><td>Tax rate</td><td>0% at first because accumulated losses (NOLs) shield income.</td><td>Moves to statutory rates as income becomes consistent.</td><td>Stable statutory rate throughout.</td><td>Erratic or 0% while losing money; normalises if the company recovers.</td></tr>
+  <tr><td>D&amp;A (% of revenue)</td><td>Starts low and rises as the asset base is built.</td><td>Tracks revenue growth as capacity expands.</td><td>Constant; roughly equal to CapEx in steady state.</td><td>High relative to shrinking revenue, or falls if assets are sold.</td></tr>
+  <tr><td>CapEx (% of revenue)</td><td>Heavy; best linked to revenue growth through a sales-to-capital ratio.</td><td>High to fund expansion, tapering toward maintenance.</td><td>Predictable maintenance level, constant.</td><td>Cut sharply; capacity investment stops and assets are divested.</td></tr>
+  <tr><td>&Delta;NWC (% of revenue change)</td><td>Tied to rapid growth; inventory and receivables absorb cash.</td><td>Scales with growth; stabilises as the cycle becomes efficient.</td><td>Constant, following the historical operating cycle.</td><td>Often negative: shrinking revenue releases working capital as cash.</td></tr>
+</table>
+
+<h3>The presets in the app</h3>
 <table class="t">
   <tr><th>Preset</th><th>Shape of the curves</th></tr>
-  <tr><td>Flat</td><td>Everything held at TTM values; growth uses the default fade. A baseline.</td></tr>
-  <tr><td>Young growth</td><td>High growth that fades; margin climbs to a mature level; no tax for 4 years, then up; heavy CapEx tapering. Pair with a probability of failure.</td></tr>
-  <tr><td>Growth</td><td>Growth held for 3 years, margin widens, tax normalises, CapEx tapers so year-10 reinvestment matches g &divide; return on capital.</td></tr>
+  <tr><td>Flat</td><td>Everything held at TTM values; growth uses the default fade. A baseline, not a life-cycle stage.</td></tr>
+  <tr><td>Young growth</td><td>High growth that fades; margin climbs to a mature level; no tax for 4 years, then rising; heavy CapEx tapering. Pair with a probability of failure.</td></tr>
+  <tr><td>Growth</td><td>Growth held for 3 years then fading, margin widens, tax normalises, CapEx tapers so year-10 reinvestment matches g &divide; ROC.</td></tr>
   <tr><td>Mature</td><td>Growth capped near the economy's, margins flat, reinvestment consistent with stable growth.</td></tr>
   <tr><td>Declining</td><td>Shrinking revenue, margin erosion, cash released from working capital. Use a distress probability and liquidation value.</td></tr>
 </table>
-<p>The stage detector is a hint, not a verdict. Override it when you know the business better.</p>
+<p>The relative-valuation column is guidance for cross-checking a DCF with multiples (PEG, EV/EBITDA and so on); Stock Elf does not compute peer multiples itself, but the Evaluate page shows the company's own P/E and forward P/E for a quick comparison.</p>
 
-<h2 id="limits">11. Limitations</h2>
+<h2 id="limits">12. Limitations</h2>
 <ul>
   <li><b>Garbage in, garbage out.</b> The defaults extrapolate the recent past. A DCF is a way to organise a view of the business, not a source of one.</li>
   <li><b>Terminal value dominates.</b> Typically 50&ndash;75% of the value comes from after year 10. Small changes in WACC or terminal growth move the result a lot (see the sensitivity grid).</li>
   <li><b>Unusual companies.</b> Banks, insurers and REITs need different models. Companies with negative cash flows need explicit judgement on when and how profits arrive.</li>
+  <li><b>Constant discount rate.</b> One WACC is applied to every year, so risk that normalises over time is not modelled except through overrides.</li>
+  <li><b>Reinvestment consistency.</b> The curves are free-form, so nothing forces growth, reinvestment and return on capital to agree. Check the implied terminal ROC.</li>
   <li><b>Stock-based compensation.</b> It is a real cost to shareholders. Check how it affects margin and share count before trusting an estimate.</li>
   <li><b>Data.</b> SEC tags differ between companies, so some fields use fallbacks. The page lists any fallback it used.</li>
 </ul>
