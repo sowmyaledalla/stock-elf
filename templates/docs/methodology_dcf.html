@@ -187,6 +187,38 @@ Value per share = DCF value &times; (1 &minus; p) + L &times; p</div>
   <tr><td>&Delta;NWC (% of revenue change)</td><td>Tied to rapid growth; inventory and receivables absorb cash.</td><td>Scales with growth; stabilises as the cycle becomes efficient.</td><td>Constant, following the historical operating cycle.</td><td>Often negative: shrinking revenue releases working capital as cash.</td></tr>
 </table>
 
+<h3>DCF components by life-cycle stage</h3>
+<p>The same five building blocks of a DCF look different at each stage: the cash flows from existing assets, the expected growth, how long the growth lasts, the risk, and the terminal value.</p>
+<div style="overflow-x:auto"><table class="t">
+  <tr><th>DCF component</th><th>1. Young growth<br>(e.g., Evergreen Solar)</th><th>2. Growth<br>(e.g., Under Armour)</th><th>3. Mature<br>(e.g., Hormel Foods, Coca-Cola)</th><th>4. Declining<br>(e.g., Las Vegas Sands)</th></tr>
+  <tr><td><b>1. Cash flows from existing assets</b></td>
+    <td>&bull; Typically negative or close to zero.<br>&bull; Start with operating losses and account for accumulated net operating losses (NOLs) to shelter future taxes.</td>
+    <td>&bull; Positive, but free cash flow to the firm (FCFF) may be low or negative early on because of heavy reinvestment needs (CapEx and working capital).</td>
+    <td>&bull; Robust, stable and positive.<br>&bull; The vast majority of the company's value comes from these assets in place (but check for operating slack or inefficiencies).</td>
+    <td>&bull; Depressed, shrinking or negative because of lost pricing power.<br>&bull; Often tied to liquidating assets or selling off divisions to raise cash.</td></tr>
+  <tr><td><b>2. Expected growth</b></td>
+    <td>&bull; Driven by total market size and market share captured.<br>&bull; High initial revenue growth (e.g., 40%) that tapers over time, paired with target operating margins of mature peers.</td>
+    <td>&bull; Rapid revenue growth that scales down systematically because of size and competition.<br>&bull; Driven fundamentally by reinvestment rate &times; ROIC (ensuring ROIC exceeds the cost of capital).</td>
+    <td>&bull; Low and stable, converging on nominal macroeconomic growth (about 2% to 3%).<br>&bull; Driven by minor efficiency gains, pricing power or disciplined reinvestment.</td>
+    <td>&bull; Negative or zero revenue and earnings growth as the business contracts and sheds market share.</td></tr>
+  <tr><td><b>3. Time of growth (forecast period)</b></td>
+    <td>&bull; A longer runway (e.g., 10 years) to allow time to move from operating losses to stable scale.</td>
+    <td>&bull; Typically 5 to 10 years, depending on how long the firm can sustain its competitive advantage before hitting scale limits.</td>
+    <td>&bull; A shorter forecast period (typically 5 years), since the company is already close to steady state.</td>
+    <td>&bull; A short period (3 to 5 years) to test for a realistic operational turnaround, or skipped entirely for liquidation.</td></tr>
+  <tr><td><b>4. Risk (discount rate)</b></td>
+    <td>&bull; Exceptionally high early on (e.g., beta of 1.60), scaled down gradually toward industry norms.<br>&bull; Crucially adjusted for survival risk through a multi-step probability of failure.</td>
+    <td>&bull; Starts moderately high (e.g., beta of 1.30) during rapid expansion and declines gradually over the forecast period as the firm stabilises.</td>
+    <td>&bull; Stable and close to industry averages throughout (beta near 1.0, debt ratios near optimal).</td>
+    <td>&bull; Exceptionally high because of severe default risk and high leverage relative to shrinking operating earnings.</td></tr>
+  <tr><td><b>5. Terminal value</b></td>
+    <td>&bull; Makes up 80% to over 100% of total value, since early cash flows need capital infusions.<br>&bull; Perpetual growth at stable macroeconomic growth, a beta of 1.0 and sustainable reinvestment.</td>
+    <td>&bull; Calculated at the end of the high-growth period using perpetual growth (2% to 3%), a beta of 1.0 and modest excess returns (ROIC above the cost of capital).</td>
+    <td>&bull; Perpetual growth, with modest reinvestment tied directly to stable growth and return on capital.</td>
+    <td>&bull; Replaced or adjusted by a cumulative probability of default or distress (from bond-rating tables), or replaced entirely by a liquidation value.</td></tr>
+</table></div>
+<div class="note">How this maps to Stock Elf: the app always uses a ten-year forecast and one constant WACC, so the stage-specific forecast lengths (3&ndash;5 years for declining or mature firms) and the beta that steps down over time are not modelled directly. To approximate them, let growth fade to the terminal rate sooner in the growth curve, use the WACC override, and use the probability-of-failure and liquidation-value inputs for young and declining companies.</div>
+
 <h3>The presets in the app</h3>
 <table class="t">
   <tr><th>Preset</th><th>Shape of the curves</th></tr>
