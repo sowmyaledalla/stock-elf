@@ -4,7 +4,7 @@
 
 Stock Elf is a small web app that helps you research a US stock on your own. Type a ticker and get a company snapshot, a free-cash-flow valuation you can adjust, and a technical-analysis read of the chart. It runs locally and uses only public data: no accounts, API keys or brokerage logins.
 
-![Stock Elf](static/img/hero-banner.jpg)
+![Stock Elf](docs/banner.jpg)
 
 ## Features
 
